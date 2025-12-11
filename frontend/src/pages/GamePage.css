@@ -1,0 +1,225 @@
+.game-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a237e, #311b92);
+  padding: 2rem;
+}
+
+.game-header {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.player-info {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.player-info h1 {
+  font-size: 2rem;
+  color: #1a237e;
+  margin-bottom: 1rem;
+}
+
+.game-status {
+  margin-top: 1rem;
+}
+
+.status {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.status.active {
+  background-color: #e6f4ea;
+  color: #1e7e34;
+}
+
+.status.waiting {
+  background-color: #fff3e0;
+  color: #f57c00;
+}
+
+.number-display {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 3rem;
+  margin-top: 2rem;
+}
+
+.current-number {
+  text-align: center;
+}
+
+.current-number h2 {
+  font-size: 1.2rem;
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.number-ball {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #ff4b2b, #ff416c);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: bold;
+  color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.last-numbers {
+  text-align: center;
+}
+
+.last-numbers h3 {
+  font-size: 1.1rem;
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.number-history {
+  display: flex;
+  gap: 1rem;
+}
+
+.history-ball {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: bold;
+  color: white;
+}
+
+.cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 1rem;
+}
+
+.card-wrapper {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.bingo-button {
+  padding: 1rem;
+  background: linear-gradient(135deg, #ff4b2b, #ff416c);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.bingo-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.bingo-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.loader {
+  color: white;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.loader::after {
+  content: "";
+  width: 24px;
+  height: 24px;
+  border: 3px solid #fff;
+  border-top: 3px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.error {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  color: white;
+  text-align: center;
+}
+
+.error h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.error p {
+  margin-bottom: 2rem;
+}
+
+.error button {
+  padding: 1rem 2rem;
+  background-color: white;
+  color: #1a237e;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.error button:hover {
+  background-color: #f5f5f5;
+  transform: translateY(-2px);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .game-header {
+    padding: 1.5rem;
+  }
+
+  .number-display {
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .cards-container {
+    grid-template-columns: 1fr;
+  }
+} 

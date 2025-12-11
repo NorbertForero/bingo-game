@@ -1,0 +1,242 @@
+.ballot-drum {
+  position: relative;
+  width: 400px;
+  height: 400px;
+  margin: 0;
+  margin-left: auto;
+  perspective: 1200px;
+}
+
+.drum-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  border-radius: 50%;
+  transform: rotateX(20deg);
+}
+
+.drum-cage {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  transform-style: preserve-3d;
+}
+
+/* Crear las líneas verticales de la jaula */
+.drum-cage::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 1px solid #e94560;
+  box-shadow: 
+    inset 0 0 0 1px transparent,
+    inset 0 0 0 1px #e94560,
+    inset 0 0 0 1px transparent,
+    inset 0 0 0 1px #e94560,
+    inset 0 0 0 1px transparent,
+    inset 0 0 0 1px #e94560;
+}
+
+/* Crear las líneas horizontales de la jaula */
+.drum-cage::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 1px solid #e94560;
+  transform: rotateY(90deg);
+  box-shadow: 
+    inset 0 0 0 1px transparent,
+    inset 0 0 0 1px #e94560,
+    inset 0 0 0 1px transparent,
+    inset 0 0 0 1px #e94560,
+    inset 0 0 0 1px transparent,
+    inset 0 0 0 1px #e94560;
+}
+
+/* Círculos adicionales para la jaula */
+.drum-cage-circles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.drum-cage-circle {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 1px solid #e94560;
+  border-radius: 50%;
+}
+
+.drum-cage-circle:nth-child(1) {
+  transform: rotateX(45deg);
+}
+
+.drum-cage-circle:nth-child(2) {
+  transform: rotateX(-45deg);
+}
+
+.drum-cage-circle:nth-child(3) {
+  transform: rotateY(45deg);
+}
+
+.drum-cage-circle:nth-child(4) {
+  transform: rotateY(-45deg);
+}
+
+.ballot-ball {
+  position: absolute;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+  color: #000;
+  box-shadow: 
+    inset -2px -2px 6px rgba(0,0,0,0.2),
+    inset 2px 2px 6px rgba(255,255,255,0.8),
+    0 0 10px rgba(0, 0, 0, 0.2);
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  transition: transform 0.1s linear;
+}
+
+.ballot-ball::before {
+  content: '';
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #000;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.ballot-ball::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 50%, rgba(0,0,0,0.1) 100%);
+}
+
+.spinning .ballot-ball {
+  animation: moveBall 4s infinite linear;
+  animation-delay: var(--delay);
+}
+
+.spinning .drum-cage {
+  animation: rotateCage 8s infinite linear;
+}
+
+.spinning .drum-cage-circles {
+  animation: rotateCageCircles 8s infinite linear reverse;
+}
+
+.current-ballot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+
+.selected-ball {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: white;
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  font-weight: bold;
+  box-shadow: 
+    inset -3px -3px 8px rgba(0,0,0,0.2),
+    inset 3px 3px 8px rgba(255,255,255,0.8),
+    0 0 20px rgba(0, 0, 0, 0.3);
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+}
+
+.selected-ball::before {
+  content: '';
+  position: absolute;
+  width: 84px;
+  height: 84px;
+  border: 1px solid #000;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.selected-ball::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, transparent 50%, rgba(0,0,0,0.1) 100%);
+}
+
+@keyframes moveBall {
+  0% {
+    transform: translate3d(var(--x), var(--y), var(--z)) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+  }
+  25% {
+    transform: translate3d(var(--z), var(--x), var(--y)) rotateX(90deg) rotateY(90deg) rotateZ(90deg);
+  }
+  50% {
+    transform: translate3d(var(--y), var(--z), var(--x)) rotateX(180deg) rotateY(180deg) rotateZ(180deg);
+  }
+  75% {
+    transform: translate3d(var(--x), var(--y), var(--z)) rotateX(270deg) rotateY(270deg) rotateZ(270deg);
+  }
+  100% {
+    transform: translate3d(var(--x), var(--y), var(--z)) rotateX(360deg) rotateY(360deg) rotateZ(360deg);
+  }
+}
+
+@keyframes rotateCage {
+  from {
+    transform: rotateX(20deg) rotateY(0deg);
+  }
+  to {
+    transform: rotateX(20deg) rotateY(360deg);
+  }
+}
+
+@keyframes rotateCageCircles {
+  from {
+    transform: rotateX(0deg) rotateY(0deg);
+  }
+  to {
+    transform: rotateX(360deg) rotateY(-360deg);
+  }
+}
+
+@keyframes popIn {
+  0% {
+    transform: scale(0) translate(-50%, -50%);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1) translate(-50%, -50%);
+    opacity: 1;
+  }
+} 

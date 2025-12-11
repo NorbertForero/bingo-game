@@ -1,0 +1,233 @@
+.admin-page {
+  min-height: 100vh;
+  padding: 2rem;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: #ffffff;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.admin-header h1 {
+  font-size: 2.5rem;
+  margin: 0;
+  color: #e94560;
+  text-shadow: 0 0 10px rgba(233, 69, 96, 0.3);
+}
+
+.game-controls {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.control-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.control-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.control-button.start {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.control-button.generate {
+  background-color: #2196F3;
+  color: white;
+  min-width: 150px;
+}
+
+.control-button.reset {
+  background-color: #f44336;
+  color: white;
+}
+
+.control-button.reset:hover:not(:disabled) {
+  background-color: #d32f2f;
+}
+
+.game-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.called-numbers {
+  text-align: center;
+  width: 100%;
+  max-width: 600px;
+}
+
+.number-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.called-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #4CAF50;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.admin-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.reference-card-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.players-section {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.players-list {
+  margin-top: 1rem;
+}
+
+.player-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.player-item:last-child {
+  border-bottom: none;
+}
+
+.player-item.claiming {
+  background-color: #fff3e0;
+}
+
+.player-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.player-name {
+  font-weight: 500;
+}
+
+.bingo-claim {
+  color: #f44336;
+  font-weight: bold;
+  animation: pulse 1s infinite;
+}
+
+.validate-button {
+  padding: 0.5rem 1rem;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.validate-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.no-players {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+.loading, .error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.loader {
+  font-size: 1.2rem;
+  color: #e94560;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 1024px) {
+  .admin-content {
+    grid-template-columns: 1fr;
+  }
+
+  .number-section {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .called-numbers {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .game-controls {
+    flex-direction: column;
+  }
+
+  .control-button {
+    width: 100%;
+  }
+} 

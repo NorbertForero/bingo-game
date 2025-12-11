@@ -1,0 +1,111 @@
+.bingo-game {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 2rem;
+}
+
+.game-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.game-header h1 {
+  font-size: 2.5rem;
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.current-number {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.current-number span {
+  font-size: 1.2rem;
+  color: #666;
+}
+
+.number-display {
+  width: 80px;
+  height: 80px;
+  background-color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #333;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.game-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.admin-panel {
+  background-color: white;
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.admin-panel h2 {
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+.validation-panel {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.validation-panel h3 {
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.validation-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.validate-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.validate-button.success {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.validate-button.success:hover {
+  background-color: #388E3C;
+}
+
+.validate-button.danger {
+  background-color: #f44336;
+  color: white;
+}
+
+.validate-button.danger:hover {
+  background-color: #d32f2f;
+}
+
+.player-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 1rem;
+} 

@@ -1,0 +1,65 @@
+.player-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+  background-color: #46178f;
+}
+
+.player-info {
+  text-align: center;
+  margin-bottom: 30px;
+  color: white;
+}
+
+.player-info h1 {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+}
+
+.player-info p {
+  font-size: 1.2rem;
+  opacity: 0.9;
+}
+
+.winner-message {
+  color: #FFD700;
+  font-size: 2rem;
+  margin-top: 10px;
+  animation: pulse 1.5s infinite;
+}
+
+.check-bingo-button {
+  margin-top: 20px;
+  padding: 15px 40px;
+  font-size: 1.5rem;
+  background-color: #FF4B4B;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.3s;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.check-bingo-button:hover {
+  background-color: #FF6B6B;
+  transform: scale(1.05);
+}
+
+.check-bingo-button:active {
+  transform: scale(0.95);
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+} 

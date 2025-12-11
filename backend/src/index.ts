@@ -1,0 +1,245 @@
+import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import cors from 'cors';
+import cardsRouter from './routes/cards';
+import gameRouter from './routes/game';
+
+const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "http://localhost:9002",
+    methods: ["GET", "POST"]
+  }
+});
+
+app.use(cors());
+app.use(express.json());
+
+// Rutas
+app.use('/api/cards', cardsRouter);
+app.use('/api/game', gameRouter);
+
+// Estado del juego
+interface GameState {
+  players: Map<string, Player>;
+  currentNumber: number | null;
+  calledNumbers: number[];
+  isGameActive: boolean;
+}
+
+interface Player {
+  id: string;
+  name: string;
+  card: number[][];
+  matches: boolean[][];
+}
+
+const gameState: GameState = {
+  players: new Map(),
+  currentNumber: null,
+  calledNumbers: [],
+  isGameActive: false
+};
+
+// Función para generar un cartón de bingo
+function generateBingoCard(): number[][] {
+  const card: number[][] = Array(5).fill(null).map(() => Array(5).fill(0));
+  
+  for (let col = 0; col < 5; col++) {
+    const min = col * 15 + 1;
+    const max = min + 14;
+    const numbers = new Set<number>();
+    
+    while (numbers.size < 5) {
+      const num = Math.floor(Math.random() * (max - min + 1)) + min;
+      numbers.add(num);
+    }
+    
+    let row = 0;
+    for (const num of numbers) {
+      card[row][col] = num;
+      row++;
+    }
+  }
+  
+  // El espacio central es libre
+  card[2][2] = 0;
+  
+  return card;
+}
+
+// Endpoints REST
+app.post('/api/players', (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: 'El nombre es requerido' });
+    }
+
+    const player: Player = {
+      id: Date.now().toString(),
+      name,
+      card: generateBingoCard(),
+      matches: Array(5).fill(null).map(() => Array(5).fill(false))
+    };
+
+    gameState.players.set(player.id, player);
+    res.status(201).json(player);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al crear el jugador' });
+  }
+});
+
+app.get('/api/players', (req, res) => {
+  try {
+    const players = Array.from(gameState.players.values());
+    res.json(players);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener los jugadores' });
+  }
+});
+
+app.get('/api/game/status', (req, res) => {
+  try {
+    res.json({
+      isGameActive: gameState.isGameActive,
+      currentNumber: gameState.currentNumber,
+      calledNumbers: gameState.calledNumbers,
+      totalPlayers: gameState.players.size
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener el estado del juego' });
+  }
+});
+
+app.post('/api/game/start', (req, res) => {
+  try {
+    if (gameState.players.size < 1) {
+      return res.status(400).json({ error: 'Se necesitan jugadores para iniciar el juego' });
+    }
+
+    gameState.isGameActive = true;
+    gameState.calledNumbers = [];
+    io.emit('gameStarted');
+    callNumber();
+
+    res.json({
+      message: 'Juego iniciado',
+      gameState: {
+        isActive: gameState.isGameActive,
+        currentNumber: gameState.currentNumber,
+        totalPlayers: gameState.players.size
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al iniciar el juego' });
+  }
+});
+
+app.post('/api/game/check-number', (req, res) => {
+  try {
+    const { playerId, row, col } = req.body;
+    const player = gameState.players.get(playerId);
+
+    if (!player) {
+      return res.status(404).json({ error: 'Jugador no encontrado' });
+    }
+
+    if (!gameState.isGameActive) {
+      return res.status(400).json({ error: 'El juego no está activo' });
+    }
+
+    const number = player.card[row][col];
+    const isMatch = gameState.calledNumbers.includes(number) || (row === 2 && col === 2);
+    
+    if (isMatch) {
+      player.matches[row][col] = true;
+    }
+
+    res.json({ isMatch, number });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al verificar el número' });
+  }
+});
+
+app.post('/api/game/check-bingo', (req, res) => {
+  try {
+    const { playerId } = req.body;
+    const player = gameState.players.get(playerId);
+
+    if (!player) {
+      return res.status(404).json({ error: 'Jugador no encontrado' });
+    }
+
+    const hasBingo = verifyBingo(player);
+    if (hasBingo) {
+      gameState.isGameActive = false;
+      io.emit('gameWon', player.name);
+    }
+
+    res.json({ hasBingo });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al verificar el bingo' });
+  }
+});
+
+// Eventos de Socket.IO
+io.on('connection', (socket) => {
+  console.log('Cliente conectado');
+
+  socket.on('disconnect', () => {
+    console.log('Cliente desconectado');
+  });
+
+  socket.on('bingoClaimed', (data) => {
+    console.log('Bingo reclamado:', data);
+    // Aquí irá la lógica de verificación del bingo
+  });
+});
+
+function callNumber() {
+  if (!gameState.isGameActive) return;
+
+  const availableNumbers = Array.from({length: 75}, (_, i) => i + 1)
+    .filter(n => !gameState.calledNumbers.includes(n));
+
+  if (availableNumbers.length === 0) {
+    gameState.isGameActive = false;
+    io.emit('gameOver');
+    return;
+  }
+
+  const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+  const number = availableNumbers[randomIndex];
+  gameState.currentNumber = number;
+  gameState.calledNumbers.push(number);
+  
+  io.emit('numberCalled', number);
+  
+  setTimeout(callNumber, 3000);
+}
+
+function verifyBingo(player: Player): boolean {
+  // Verificar filas
+  for (let i = 0; i < 5; i++) {
+    if (player.matches[i].every(match => match)) return true;
+  }
+
+  // Verificar columnas
+  for (let i = 0; i < 5; i++) {
+    if (player.matches.every(row => row[i])) return true;
+  }
+
+  // Verificar diagonales
+  if (player.matches.every((row, i) => row[i])) return true;
+  if (player.matches.every((row, i) => row[4 - i])) return true;
+
+  return false;
+}
+
+const PORT = process.env.PORT || 9001;
+httpServer.listen(PORT, () => {
+  console.log(`Servidor corriendo en puerto ${PORT}`);
+}); 
