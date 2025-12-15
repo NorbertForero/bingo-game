@@ -95,6 +95,15 @@
   max-width: 600px;
 }
 
+.called-numbers--sidebar {
+  margin-bottom: 1.5rem;
+  max-width: 100%;
+}
+
+.called-numbers--sidebar .number-list {
+  justify-content: flex-start;
+}
+
 .number-list {
   display: flex;
   flex-wrap: wrap;
@@ -133,6 +142,7 @@
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: #333333;
 }
 
 .players-list {
@@ -163,6 +173,22 @@
 
 .player-name {
   font-weight: 500;
+  color: #222222;
+}
+
+.bingo-order {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 24px;
+  margin-left: 0.5rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background-color: #ffe082;
+  color: #5d4037;
+  font-weight: 600;
+  font-size: 0.75rem;
 }
 
 .bingo-claim {

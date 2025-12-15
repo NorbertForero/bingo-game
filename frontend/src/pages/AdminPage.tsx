@@ -10,6 +10,11 @@ interface Player {
   id: string;
   name: string;
   hasClaimed: boolean;
+  /**
+   * Orden en el que reclamó BINGO (1 = primero, 2 = segundo, etc.)
+   * undefined si aún no ha reclamado.
+   */
+  bingoOrder?: number;
   cardToValidate?: {
     id: string;
     numbers: number[][];
@@ -74,19 +79,44 @@ export const AdminPage: React.FC = () => {
     });
 
     newSocket.on('playerJoined', (player: Player) => {
-      setPlayers(prev => [...prev, { ...player, hasClaimed: false }]);
+      setPlayers(prev => [
+        ...prev,
+        { ...player, hasClaimed: false, bingoOrder: undefined },
+      ]);
     });
 
     newSocket.on('playerLeft', (playerId: string) => {
       setPlayers(prev => prev.filter(p => p.id !== playerId));
     });
 
-    newSocket.on('bingoClaimed', (data: { playerId: string, playerName: string, card: any }) => {
-      setPlayers(prev => prev.map(p => 
-        p.id === data.playerId 
-          ? { ...p, hasClaimed: true, cardToValidate: data.card }
-          : p
-      ));
+    newSocket.on('bingoClaimed', (data: { playerId: string; playerName: string; card: any }) => {
+      setPlayers(prev => {
+        // Calcular el siguiente orden disponible (1, 2, 3, ...)
+        const maxOrder =
+          prev.reduce(
+            (max, p) => (p.bingoOrder && p.bingoOrder > max ? p.bingoOrder : max),
+            0
+          ) || 0;
+
+        const updated = prev.map(p =>
+          p.id === data.playerId
+            ? {
+                ...p,
+                hasClaimed: true,
+                cardToValidate: data.card,
+                bingoOrder: p.bingoOrder ?? maxOrder + 1,
+              }
+            : p
+        );
+
+        // Ordenar para que quienes reclamaron BINGO primero aparezcan arriba
+        return [...updated].sort((a, b) => {
+          const orderA = a.bingoOrder ?? Infinity;
+          const orderB = b.bingoOrder ?? Infinity;
+          if (orderA === orderB) return a.name.localeCompare(b.name);
+          return orderA - orderB;
+        });
+      });
     });
 
     setSocket(newSocket);
@@ -177,6 +207,15 @@ export const AdminPage: React.FC = () => {
       setGameActive(false);
       setCalledNumbers([]);
       setCurrentNumber(null);
+      // Reiniciar estado de los jugadores (borrar reclamos y orden)
+      setPlayers(prev =>
+        prev.map(p => ({
+          ...p,
+          hasClaimed: false,
+          bingoOrder: undefined,
+          cardToValidate: undefined,
+        }))
+      );
       socket?.emit('gameReset');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -281,14 +320,6 @@ export const AdminPage: React.FC = () => {
           currentNumber={currentNumber}
           calledNumbers={calledNumbers}
         />
-        <div className="called-numbers">
-          <h3>Números llamados:</h3>
-          <div className="number-list">
-            {calledNumbers.map(num => (
-              <span key={num} className="called-number">{num}</span>
-            ))}
-          </div>
-        </div>
       </div>
 
       <div className="admin-content">
@@ -308,11 +339,26 @@ export const AdminPage: React.FC = () => {
 
         <div className="players-section">
           <h2>Jugadores</h2>
+
+          <div className="called-numbers called-numbers--sidebar">
+            <h3>Números llamados:</h3>
+            <div className="number-list">
+              {calledNumbers.map(num => (
+                <span key={num} className="called-number">{num}</span>
+              ))}
+            </div>
+          </div>
+
           <div className="players-list">
             {players.map(player => (
               <div key={player.id} className={`player-item ${player.hasClaimed ? 'claiming' : ''}`}>
                 <div className="player-info">
                   <span className="player-name">{player.name}</span>
+                  {typeof player.bingoOrder === 'number' && (
+                    <span className="bingo-order">
+                      #{player.bingoOrder}
+                    </span>
+                  )}
                   {player.hasClaimed && (
                     <span className="bingo-claim">¡BINGO!</span>
                   )}
