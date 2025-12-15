@@ -13,11 +13,24 @@ const app = (0, express_1.default)();
 const httpServer = (0, http_1.createServer)(app);
 const io = new socket_io_1.Server(httpServer, {
     cors: {
-        origin: "http://localhost:9002",
-        methods: ["GET", "POST"]
-    }
+        origin: [
+            'http://localhost:9002',
+            'http://127.0.0.1:9002',
+            'http://192.168.20.22:9001',
+            'http://192.168.20.22:9002',
+        ],
+        methods: ['GET', 'POST'],
+    },
 });
-app.use((0, cors_1.default)());
+app.use((0, cors_1.default)({
+    origin: [
+        'http://localhost:9002',
+        'http://127.0.0.1:9002',
+        'http://192.168.20.22:9001',
+        'http://192.168.20.22:9002',
+    ],
+    methods: ['GET', 'POST'],
+}));
 app.use(express_1.default.json());
 // Rutas
 app.use('/api/cards', cards_1.default);
@@ -28,6 +41,8 @@ const gameState = {
     calledNumbers: [],
     isGameActive: false
 };
+// Relación entre sockets conectados y jugadores que se han registrado vía websockets
+const connectedPlayers = new Map();
 // Función para generar un cartón de bingo
 function generateBingoCard() {
     const card = Array(5).fill(null).map(() => Array(5).fill(0));
@@ -157,6 +172,33 @@ io.on('connection', (socket) => {
     console.log('Cliente conectado');
     socket.on('disconnect', () => {
         console.log('Cliente desconectado');
+        // Si este socket estaba asociado a un jugador, avisar al panel admin
+        const player = connectedPlayers.get(socket.id);
+        if (player) {
+            io.emit('playerLeft', player.id);
+            connectedPlayers.delete(socket.id);
+        }
+    });
+    // Jugador que se conecta desde GamePage.tsx
+    socket.on('playerJoined', (player) => {
+        connectedPlayers.set(socket.id, player);
+        io.emit('playerJoined', player);
+    });
+    // Eventos que vienen desde el panel de admin y deben propagarse a todos los clientes
+    socket.on('gameStarted', () => {
+        io.emit('gameStarted');
+    });
+    socket.on('numberCalled', (number) => {
+        io.emit('numberCalled', number);
+    });
+    socket.on('gameReset', () => {
+        io.emit('gameReset');
+    });
+    socket.on('gameEnded', () => {
+        io.emit('gameEnded');
+    });
+    socket.on('bingoValidationResult', (payload) => {
+        io.emit('bingoValidationResult', payload);
     });
     socket.on('bingoClaimed', (data) => {
         console.log('Bingo reclamado:', data);

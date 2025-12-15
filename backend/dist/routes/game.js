@@ -21,10 +21,13 @@ router.post('/generate-number', (req, res) => {
         // Generar número aleatorio de los disponibles
         const randomIndex = Math.floor(Math.random() * availableNumbers.length);
         const number = availableNumbers[randomIndex];
+        // Obtener la columna del número
+        const column = getBingoColumn(number);
         // Agregar el número a la lista de llamados
         calledNumbers.push(number);
         // Responder con el número generado
         res.json({
+            column, // B | I | N | G | O
             number,
             remainingNumbers: 75 - calledNumbers.length,
             calledNumbers
@@ -67,4 +70,17 @@ router.get('/status', (req, res) => {
         });
     }
 });
+function getBingoColumn(num) {
+    if (num >= 1 && num <= 15)
+        return 'B';
+    if (num >= 16 && num <= 30)
+        return 'I';
+    if (num >= 31 && num <= 45)
+        return 'N';
+    if (num >= 46 && num <= 60)
+        return 'G';
+    if (num >= 61 && num <= 75)
+        return 'O';
+    return 'Desconocido';
+}
 exports.default = router;

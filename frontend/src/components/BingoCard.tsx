@@ -28,7 +28,7 @@ export const BingoCard: React.FC<BingoCardProps> = ({
 
   const renderReferenceCard = () => {
     return (
-      <div className="bingo-card">
+      <div className="bingo-card bingo-card-admin">
         <div className="card-title">Bingo General</div>
         <div className="bingo-header">
           {headers.map((letter, index) => (
@@ -59,7 +59,7 @@ export const BingoCard: React.FC<BingoCardProps> = ({
 
   const renderRegularCard = () => {
     return (
-      <div className="bingo-card">
+      <div className="bingo-card bingo-card-player">
         <div className="card-title">Cartón #{card.id}</div>
         <div className="bingo-header">
           {headers.map((letter, index) => (
