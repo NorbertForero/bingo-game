@@ -301,13 +301,7 @@ export const AdminPage: React.FC = () => {
           >
             {isSpinning ? 'Generando...' : 'Generar Balota'}
           </button>
-          <button
-            className="control-button reset"
-            onClick={handleResetGame}
-            disabled={!gameActive}
-          >
-            Reiniciar Juego
-          </button>
+
         </div>
         <button className="logout-button" onClick={handleLogout}>
           Cerrar sesión
@@ -338,17 +332,25 @@ export const AdminPage: React.FC = () => {
         </div>
 
         <div className="players-section">
-          <h2>Jugadores</h2>
+
 
           <div className="called-numbers called-numbers--sidebar">
-            <h3>Números llamados:</h3>
+            <h2>Números llamados:</h2>
             <div className="number-list">
               {calledNumbers.map(num => (
                 <span key={num} className="called-number">{num}</span>
               ))}
             </div>
+            <button
+              className="control-button reset"
+              onClick={handleResetGame}
+              disabled={!gameActive}
+            >
+              Reiniciar Juego
+            </button>
           </div>
 
+          <h2>Jugadores</h2>
           <div className="players-list">
             {players.map(player => (
               <div key={player.id} className={`player-item ${player.hasClaimed ? 'claiming' : ''}`}>
