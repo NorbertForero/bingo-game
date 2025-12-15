@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Manager } from 'socket.io-client';
-import { Socket } from 'socket.io-client';
+import { Manager, Socket } from 'socket.io-client';
+import { API_BASE_URL } from '../config/api';
 import { BingoCard } from '../components/BingoCard';
 import './GamePage.css';
 
@@ -21,7 +21,7 @@ interface Player {
 export const GamePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [socket, setSocket] = useState<typeof Socket | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [currentNumber, setCurrentNumber] = useState<number | null>(null);
   const [lastNumbers, setLastNumbers] = useState<number[]>([]);
   const [player, setPlayer] = useState<Player | null>(null);
@@ -29,6 +29,14 @@ export const GamePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [gameActive, setGameActive] = useState(false);
   const [claimingBingo, setClaimingBingo] = useState(false);
+
+  const handleLogout = () => {
+    if (socket) {
+      socket.disconnect();
+      setSocket(null);
+    }
+    navigate('/');
+  };
 
   useEffect(() => {
     if (!location.state?.playerName || !location.state?.cards) {
@@ -42,7 +50,7 @@ export const GamePage: React.FC = () => {
       cards: location.state.cards
     });
 
-    const manager = new Manager('http://localhost:9001');
+    const manager = new Manager(API_BASE_URL);
     const newSocket = manager.socket('/');
 
     newSocket.on('connect', () => {
@@ -87,7 +95,7 @@ export const GamePage: React.FC = () => {
   }, [location.state, navigate]);
 
   const handleNumberClick = (cardId: string, row: number, col: number) => {
-    if (!gameActive || !player) return;
+    if (!player) return;
 
     setPlayer(prevPlayer => {
       if (!prevPlayer) return null;
@@ -152,6 +160,9 @@ export const GamePage: React.FC = () => {
   return (
     <div className="game-page">
       <header className="game-header">
+        <button className="logout-button" onClick={handleLogout}>
+          Cerrar sesión
+        </button>
         <div className="player-info">
           <h1>¡Bienvenido, {player.name}!</h1>
           <div className="game-status">

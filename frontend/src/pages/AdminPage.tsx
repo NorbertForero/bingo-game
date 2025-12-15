@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Manager } from 'socket.io-client';
-import { Socket } from 'socket.io-client';
+import { useNavigate } from 'react-router-dom';
+import { Manager, Socket } from 'socket.io-client';
+import { API_BASE_URL } from '../config/api';
 import { BingoCard } from '../components/BingoCard';
 import { BallotDrum } from '../components/BallotDrum';
 import './AdminPage.css';
@@ -24,7 +25,8 @@ interface AdminCard {
 }
 
 export const AdminPage: React.FC = () => {
-  const [socket, setSocket] = useState<typeof Socket | null>(null);
+  const navigate = useNavigate();
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentNumber, setCurrentNumber] = useState<number | null>(null);
   const [calledNumbers, setCalledNumbers] = useState<number[]>([]);
@@ -38,7 +40,7 @@ export const AdminPage: React.FC = () => {
   useEffect(() => {
     const fetchAdminCard = async () => {
       try {
-        const response = await fetch('http://localhost:9001/api/cards/generate', {
+        const response = await fetch(`${API_BASE_URL}/api/cards/generate`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -64,7 +66,7 @@ export const AdminPage: React.FC = () => {
 
     fetchAdminCard();
 
-    const manager = new Manager('http://localhost:9001');
+    const manager = new Manager(API_BASE_URL);
     const newSocket = manager.socket('/');
 
     newSocket.on('connect', () => {
@@ -95,13 +97,21 @@ export const AdminPage: React.FC = () => {
     };
   }, []);
 
+  const handleLogout = () => {
+    if (socket) {
+      socket.disconnect();
+      setSocket(null);
+    }
+    navigate('/');
+  };
+
   const handleGenerateNumber = async () => {
     if (!socket || !gameActive || isSpinning) return;
 
     setIsSpinning(true);
     
     try {
-      const response = await fetch('http://localhost:9001/api/game/generate-number', {
+      const response = await fetch(`${API_BASE_URL}/api/game/generate-number`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -153,7 +163,7 @@ export const AdminPage: React.FC = () => {
 
   const handleResetGame = async () => {
     try {
-      const response = await fetch('http://localhost:9001/api/game/reset', {
+      const response = await fetch(`${API_BASE_URL}/api/game/reset`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -178,7 +188,7 @@ export const AdminPage: React.FC = () => {
 
     setValidatingBingo(true);
     try {
-      const response = await fetch('http://localhost:9001/api/game/validate-bingo', {
+      const response = await fetch(`${API_BASE_URL}/api/game/validate-bingo`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -260,6 +270,9 @@ export const AdminPage: React.FC = () => {
             Reiniciar Juego
           </button>
         </div>
+        <button className="logout-button" onClick={handleLogout}>
+          Cerrar sesión
+        </button>
       </header>
 
       <div className="game-status">

@@ -9,12 +9,25 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:9002",
-    methods: ["GET", "POST"]
-  }
+    origin: [
+      'http://localhost:9002',
+      'http://127.0.0.1:9002',
+      'http://192.168.20.22:9002',
+    ],
+    methods: ['GET', 'POST'],
+  },
 });
 
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      'http://localhost:9002',
+      'http://127.0.0.1:9002',
+      'http://192.168.20.22:9002',
+    ],
+    methods: ['GET', 'POST'],
+  })
+);
 app.use(express.json());
 
 // Rutas
@@ -191,6 +204,27 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log('Cliente desconectado');
+  });
+
+  // Eventos que vienen desde el panel de admin y deben propagarse a todos los clientes
+  socket.on('gameStarted', () => {
+    io.emit('gameStarted');
+  });
+
+  socket.on('numberCalled', (number: number) => {
+    io.emit('numberCalled', number);
+  });
+
+  socket.on('gameReset', () => {
+    io.emit('gameReset');
+  });
+
+  socket.on('gameEnded', () => {
+    io.emit('gameEnded');
+  });
+
+  socket.on('bingoValidationResult', (payload) => {
+    io.emit('bingoValidationResult', payload);
   });
 
   socket.on('bingoClaimed', (data) => {

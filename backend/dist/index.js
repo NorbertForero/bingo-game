@@ -7,6 +7,8 @@ const express_1 = __importDefault(require("express"));
 const http_1 = require("http");
 const socket_io_1 = require("socket.io");
 const cors_1 = __importDefault(require("cors"));
+const cards_1 = __importDefault(require("./routes/cards"));
+const game_1 = __importDefault(require("./routes/game"));
 const app = (0, express_1.default)();
 const httpServer = (0, http_1.createServer)(app);
 const io = new socket_io_1.Server(httpServer, {
@@ -17,6 +19,9 @@ const io = new socket_io_1.Server(httpServer, {
 });
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
+// Rutas
+app.use('/api/cards', cards_1.default);
+app.use('/api/game', game_1.default);
 const gameState = {
     players: new Map(),
     currentNumber: null,
@@ -44,58 +49,118 @@ function generateBingoCard() {
     card[2][2] = 0;
     return card;
 }
-io.on('connection', (socket) => {
-    console.log('Usuario conectado:', socket.id);
-    socket.on('joinGame', (playerName) => {
+// Endpoints REST
+app.post('/api/players', (req, res) => {
+    try {
+        const { name } = req.body;
+        if (!name) {
+            return res.status(400).json({ error: 'El nombre es requerido' });
+        }
         const player = {
-            id: socket.id,
-            name: playerName,
+            id: Date.now().toString(),
+            name,
             card: generateBingoCard(),
             matches: Array(5).fill(null).map(() => Array(5).fill(false))
         };
-        gameState.players.set(socket.id, player);
-        socket.emit('gameJoined', player);
-        io.emit('playerList', Array.from(gameState.players.values()));
-    });
-    // Nueva funcionalidad: verificar número marcado
-    socket.on('checkNumber', ({ row, col }) => {
-        const player = gameState.players.get(socket.id);
-        if (player && gameState.isGameActive) {
-            const number = player.card[row][col];
-            // El espacio central (FREE) siempre está marcado
-            if (row === 2 && col === 2) {
-                player.matches[row][col] = true;
-                socket.emit('numberChecked', { row, col, isMatch: true });
-                return;
-            }
-            // Verificar si el número ha sido llamado
-            if (gameState.calledNumbers.includes(number)) {
-                player.matches[row][col] = true;
-                socket.emit('numberChecked', { row, col, isMatch: true });
-            }
-            else {
-                socket.emit('numberChecked', { row, col, isMatch: false });
-            }
+        gameState.players.set(player.id, player);
+        res.status(201).json(player);
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Error al crear el jugador' });
+    }
+});
+app.get('/api/players', (req, res) => {
+    try {
+        const players = Array.from(gameState.players.values());
+        res.json(players);
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Error al obtener los jugadores' });
+    }
+});
+app.get('/api/game/status', (req, res) => {
+    try {
+        res.json({
+            isGameActive: gameState.isGameActive,
+            currentNumber: gameState.currentNumber,
+            calledNumbers: gameState.calledNumbers,
+            totalPlayers: gameState.players.size
+        });
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Error al obtener el estado del juego' });
+    }
+});
+app.post('/api/game/start', (req, res) => {
+    try {
+        if (gameState.players.size < 1) {
+            return res.status(400).json({ error: 'Se necesitan jugadores para iniciar el juego' });
         }
-    });
-    socket.on('startGame', () => {
-        if (gameState.players.size >= 1) {
-            gameState.isGameActive = true;
-            gameState.calledNumbers = [];
-            io.emit('gameStarted');
-            callNumber();
+        gameState.isGameActive = true;
+        gameState.calledNumbers = [];
+        io.emit('gameStarted');
+        callNumber();
+        res.json({
+            message: 'Juego iniciado',
+            gameState: {
+                isActive: gameState.isGameActive,
+                currentNumber: gameState.currentNumber,
+                totalPlayers: gameState.players.size
+            }
+        });
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Error al iniciar el juego' });
+    }
+});
+app.post('/api/game/check-number', (req, res) => {
+    try {
+        const { playerId, row, col } = req.body;
+        const player = gameState.players.get(playerId);
+        if (!player) {
+            return res.status(404).json({ error: 'Jugador no encontrado' });
         }
-    });
-    socket.on('checkBingo', () => {
-        const player = gameState.players.get(socket.id);
-        if (player && verifyBingo(player)) {
-            io.emit('gameWon', player.name);
+        if (!gameState.isGameActive) {
+            return res.status(400).json({ error: 'El juego no está activo' });
+        }
+        const number = player.card[row][col];
+        const isMatch = gameState.calledNumbers.includes(number) || (row === 2 && col === 2);
+        if (isMatch) {
+            player.matches[row][col] = true;
+        }
+        res.json({ isMatch, number });
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Error al verificar el número' });
+    }
+});
+app.post('/api/game/check-bingo', (req, res) => {
+    try {
+        const { playerId } = req.body;
+        const player = gameState.players.get(playerId);
+        if (!player) {
+            return res.status(404).json({ error: 'Jugador no encontrado' });
+        }
+        const hasBingo = verifyBingo(player);
+        if (hasBingo) {
             gameState.isGameActive = false;
+            io.emit('gameWon', player.name);
         }
-    });
+        res.json({ hasBingo });
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Error al verificar el bingo' });
+    }
+});
+// Eventos de Socket.IO
+io.on('connection', (socket) => {
+    console.log('Cliente conectado');
     socket.on('disconnect', () => {
-        gameState.players.delete(socket.id);
-        io.emit('playerList', Array.from(gameState.players.values()));
+        console.log('Cliente desconectado');
+    });
+    socket.on('bingoClaimed', (data) => {
+        console.log('Bingo reclamado:', data);
+        // Aquí irá la lógica de verificación del bingo
     });
 });
 function callNumber() {
@@ -133,33 +198,7 @@ function verifyBingo(player) {
         return true;
     return false;
 }
-// Nuevo endpoint HTTP para iniciar el juego
-app.get('/StartGame', (req, res) => {
-    try {
-        gameState.isGameActive = true;
-        gameState.calledNumbers = [];
-        io.emit('gameStarted');
-        callNumber();
-        res.status(200).json({
-            status: "success",
-            message: "Juego iniciado correctamente",
-            gameState: {
-                isActive: gameState.isGameActive,
-                currentNumber: gameState.currentNumber,
-                totalPlayers: gameState.players.size,
-                calledNumbers: gameState.calledNumbers
-            }
-        });
-    }
-    catch (error) {
-        res.status(500).json({
-            status: "error",
-            message: "Error al iniciar el juego",
-            error: (error === null || error === void 0 ? void 0 : error.message) || 'Error desconocido'
-        });
-    }
-});
 const PORT = process.env.PORT || 9001;
 httpServer.listen(PORT, () => {
-    console.log(`Servidor ejecutándose en el puerto ${PORT}`);
+    console.log(`Servidor corriendo en puerto ${PORT}`);
 });

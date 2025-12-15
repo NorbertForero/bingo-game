@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Manager } from 'socket.io-client';
-import { Socket } from 'socket.io-client';
+import { Manager, Socket } from 'socket.io-client';
+import { API_BASE_URL } from '../config/api';
 import './AdminView.css';
 
 interface BingoNumber {
@@ -17,10 +17,10 @@ const AdminView: React.FC = () => {
   );
   const [currentNumber, setCurrentNumber] = useState<number | null>(null);
   const [isGameActive, setIsGameActive] = useState(false);
-  const [socket, setSocket] = useState<typeof Socket | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    const manager = new Manager('http://localhost:9001');
+    const manager = new Manager(API_BASE_URL);
     const newSocket = manager.socket('/');
     setSocket(newSocket);
 

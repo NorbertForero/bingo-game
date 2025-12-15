@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useLocation, Navigate } from 'react-router-dom';
-import { Manager } from 'socket.io-client';
-import { Socket } from 'socket.io-client';
+import { Manager, Socket } from 'socket.io-client';
+import { API_BASE_URL } from '../config/api';
 import { BingoCard } from './BingoCard';
 import BallDisplay from './BallDisplay';
 import './PlayerView.css';
@@ -23,7 +23,7 @@ const PlayerView: React.FC = () => {
   const [player, setPlayer] = useState<Player | null>(location.state?.player || null);
   const [error, setError] = useState<string>('');
   const [currentNumber, setCurrentNumber] = useState<number | null>(null);
-  const [socket, setSocket] = useState<typeof Socket | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [hasWon, setHasWon] = useState(false);
   const [gameActive, setGameActive] = useState(false);
 
@@ -33,7 +33,7 @@ const PlayerView: React.FC = () => {
       if (!id) return;
       
       try {
-        const response = await fetch(`http://localhost:9001/api/players/${id}`);
+        const response = await fetch(`${API_BASE_URL}/api/players/${id}`);
         if (!response.ok) {
           throw new Error('Jugador no encontrado');
         }
@@ -54,7 +54,7 @@ const PlayerView: React.FC = () => {
     if (!player) return;
 
     try {
-      const manager = new Manager('http://localhost:9001');
+      const manager = new Manager(API_BASE_URL);
       const newSocket = manager.socket('/');
       
       // Configurar los event listeners antes de establecer el socket
@@ -112,7 +112,7 @@ const PlayerView: React.FC = () => {
     if (!player || !gameActive) return;
 
     try {
-      const response = await fetch('http://localhost:9001/api/game/check-number', {
+      const response = await fetch(`${API_BASE_URL}/api/game/check-number`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -153,7 +153,7 @@ const PlayerView: React.FC = () => {
     if (!player || !gameActive) return;
 
     try {
-      const response = await fetch('http://localhost:9001/api/game/check-bingo', {
+      const response = await fetch(`${API_BASE_URL}/api/game/check-bingo`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

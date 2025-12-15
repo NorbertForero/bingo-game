@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import io from 'socket.io-client';
+import { API_BASE_URL } from './config/api';
 import BingoCard from './components/BingoCard';
 import BallDisplay from './components/BallDisplay';
 
@@ -72,8 +73,7 @@ const App = () => {
 
     // Conectar al servidor de WebSocket
     try {
-      const SOCKET_URL = 'http://localhost:9001'; // Puerto del backend
-      const newSocket = io(SOCKET_URL, {
+      const newSocket = io(API_BASE_URL, {
         reconnectionAttempts: 5,
         timeout: 10000,
       });

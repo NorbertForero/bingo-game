@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { BingoCard } from '../components/BingoCard';
+import { API_BASE_URL } from '../config/api';
 import './PlayPage.css';
 
 interface Card {
@@ -28,7 +29,7 @@ export const PlayPage: React.FC = () => {
 
     const fetchCards = async () => {
       try {
-        const response = await fetch('http://localhost:9001/api/cards/generate', {
+        const response = await fetch(`${API_BASE_URL}/api/cards/generate`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
