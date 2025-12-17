@@ -70,6 +70,74 @@ router.get('/status', (req, res) => {
         });
     }
 });
+// Endpoint para validar un cartón de bingo
+router.post('/validate-bingo', (req, res) => {
+    try {
+        const { card, calledNumbers: calledNumbersFromClient } = req.body;
+        if (!card || !card.numbers || !card.matches) {
+            return res.status(400).json({
+                error: 'Datos del cartón inválidos'
+            });
+        }
+        // Verificar que los números marcados como "match" estén en calledNumbers
+        let isValid = true;
+        const numbers = card.numbers;
+        const matches = card.matches;
+        // Verificar todas las celdas marcadas
+        for (let row = 0; row < 5; row++) {
+            for (let col = 0; col < 5; col++) {
+                if (matches[row][col]) {
+                    const number = numbers[row][col];
+                    // El centro (2,2) es gratis
+                    if (row === 2 && col === 2) {
+                        continue;
+                    }
+                    // Verificar que el número esté en calledNumbers
+                    if (!calledNumbersFromClient.includes(number)) {
+                        isValid = false;
+                        break;
+                    }
+                }
+            }
+            if (!isValid)
+                break;
+        }
+        // Verificar si tiene un patrón ganador (línea, columna o diagonal)
+        if (isValid) {
+            isValid = checkWinningPattern(matches);
+        }
+        res.json({
+            isValid,
+            message: isValid ? '¡BINGO válido!' : 'El cartón no tiene un patrón ganador'
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            error: 'Error al validar el bingo',
+            details: error instanceof Error ? error.message : 'Error desconocido'
+        });
+    }
+});
+// Función para verificar si hay un patrón ganador
+function checkWinningPattern(matches) {
+    // Verificar filas
+    for (let i = 0; i < 5; i++) {
+        if (matches[i].every(match => match))
+            return true;
+    }
+    // Verificar columnas
+    for (let i = 0; i < 5; i++) {
+        if (matches.every(row => row[i]))
+            return true;
+    }
+    // Verificar diagonal principal (top-left a bottom-right)
+    if (matches.every((row, i) => row[i]))
+        return true;
+    // Verificar diagonal secundaria (top-right a bottom-left)
+    if (matches.every((row, i) => row[4 - i]))
+        return true;
+    return false;
+}
 function getBingoColumn(num) {
     if (num >= 1 && num <= 15)
         return 'B';

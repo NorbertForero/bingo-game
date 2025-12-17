@@ -205,21 +205,23 @@ app.post('/api/game/check-bingo', (req, res) => {
 
 // Eventos de Socket.IO
 io.on('connection', (socket) => {
-  console.log('Cliente conectado');
+  console.log(`Cliente conectado (Socket ID: ${socket.id})`);
 
   socket.on('disconnect', () => {
-    console.log('Cliente desconectado');
-
     // Si este socket estaba asociado a un jugador, avisar al panel admin
     const player = connectedPlayers.get(socket.id);
     if (player) {
+      console.log(`Jugador desconectado: ${player.name} (ID: ${player.id})`);
       io.emit('playerLeft', player.id);
       connectedPlayers.delete(socket.id);
+    } else {
+      console.log(`Cliente desconectado (Socket ID: ${socket.id})`);
     }
   });
 
   // Jugador que se conecta desde GamePage.tsx
   socket.on('playerJoined', (player: { id: string; name: string }) => {
+    console.log(`Jugador conectado: ${player.name}`);
     connectedPlayers.set(socket.id, player);
     io.emit('playerJoined', player);
   });
@@ -246,8 +248,12 @@ io.on('connection', (socket) => {
   });
 
   socket.on('bingoClaimed', (data) => {
-    console.log('Bingo reclamado:', data);
-    // Aquí irá la lógica de verificación del bingo
+    console.log(`¡BINGO reclamado por ${data.playerName}!`);
+    console.log(`- Player ID: ${data.playerId}`);
+    console.log(`- Card ID: ${data.cardId}`);
+    
+    // Propagar el evento a TODOS los clientes (especialmente al admin)
+    io.emit('bingoClaimed', data);
   });
 });
 

@@ -2599,7 +2599,7 @@ export const GamePage: React.FC = () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
+  min-height: 10vh;
 }
 
 .loader {
@@ -3363,7 +3363,7 @@ Ahora voy a actualizar solo las reglas CSS para que el botón de cerrar sesión 
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
+  min-height: 10vh;
 }
 
 .loader {

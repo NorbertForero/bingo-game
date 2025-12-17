@@ -26,9 +26,9 @@ export const GamePage: React.FC = () => {
   const [lastNumbers, setLastNumbers] = useState<number[]>([]);
   const [player, setPlayer] = useState<Player | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [gameActive, setGameActive] = useState(false);
   const [claimingBingo, setClaimingBingo] = useState(false);
+  const [validationResult, setValidationResult] = useState<{ isValid: boolean, message: string } | null>(null);
 
   const handleLogout = () => {
     if (socket) {
@@ -44,8 +44,10 @@ export const GamePage: React.FC = () => {
       return;
     }
 
+    const playerId = Date.now().toString();
+
     setPlayer({
-      id: Date.now().toString(),
+      id: playerId,
       name: location.state.playerName,
       cards: location.state.cards
     });
@@ -58,7 +60,7 @@ export const GamePage: React.FC = () => {
       // Registrar al jugador
       newSocket.emit('playerJoined', {
         name: location.state.playerName,
-        id: Date.now().toString()
+        id: playerId
       });
     });
 
@@ -78,9 +80,21 @@ export const GamePage: React.FC = () => {
       setGameActive(false);
     });
 
-    newSocket.on('bingoValidationResult', (result: { isValid: boolean, message: string }) => {
+    newSocket.on('bingoValidationResult', (result: { playerId: string, playerName: string, isValid: boolean, message: string }) => {
       setClaimingBingo(false);
-      alert(result.message);
+      
+      // Determinar el mensaje según si es el ganador o no
+      let displayMessage = result.message;
+      if (result.isValid && result.playerId !== playerId) {
+        // Otro jugador ganó
+        displayMessage = `Lamentablemente esta no fue tu oportunidad. ¡${result.playerName} ha ganado!`;
+      }
+      
+      setValidationResult({
+        isValid: result.isValid && result.playerId === playerId,
+        message: displayMessage
+      });
+      
       if (result.isValid) {
         setGameActive(false);
       }
@@ -133,16 +147,6 @@ export const GamePage: React.FC = () => {
     return (
       <div className="game-page loading">
         <div className="loader">Cargando juego...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="game-page error">
-        <h2>Error</h2>
-        <p>{error}</p>
-        <button onClick={() => navigate('/player')}>Volver</button>
       </div>
     );
   }
@@ -214,6 +218,27 @@ export const GamePage: React.FC = () => {
           </div>
         ))}
       </main>
+
+      {/* Modal de resultado de validación */}
+      {validationResult && (
+        <div className="validation-result-overlay" onClick={() => setValidationResult(null)}>
+          <div className="validation-result-modal" onClick={(e) => e.stopPropagation()}>
+            <div className={`modal-icon ${validationResult.isValid ? 'success' : 'error'}`}>
+              {validationResult.isValid ? '😊' : '😢'}
+            </div>
+            <h2 className={validationResult.isValid ? 'success-title' : 'error-title'}>
+              {validationResult.isValid ? '¡Felicitaciones!' : 'Lo sentimos'}
+            </h2>
+            <p className="modal-message">{validationResult.message}</p>
+            <button 
+              className="modal-close-button"
+              onClick={() => setValidationResult(null)}
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }; 

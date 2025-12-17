@@ -1,9 +1,7 @@
 .ballot-drum {
-  position: center;
   width: 400px;
   height: 400px;
-  margin: 0;
-  margin-left: auto;
+  margin: 0 auto;
   perspective: 1200px;
 }
 

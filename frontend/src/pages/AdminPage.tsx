@@ -35,12 +35,14 @@ export const AdminPage: React.FC = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentNumber, setCurrentNumber] = useState<number | null>(null);
   const [calledNumbers, setCalledNumbers] = useState<number[]>([]);
+  const [calledBalls, setCalledBalls] = useState<Array<{ number: number; column: string }>>([]);
   const [adminCard, setAdminCard] = useState<AdminCard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [gameActive, setGameActive] = useState(false);
   const [validatingBingo, setValidatingBingo] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [selectedPlayerForValidation, setSelectedPlayerForValidation] = useState<Player | null>(null);
 
   useEffect(() => {
     const fetchAdminCard = async () => {
@@ -153,12 +155,13 @@ export const AdminPage: React.FC = () => {
         throw new Error('Error al generar número');
       }
 
-      const { number } = await response.json();
+      const { number, column } = await response.json();
       
       // Esperar 3 segundos antes de mostrar el número
       setTimeout(() => {
         setCurrentNumber(number);
         setCalledNumbers(prev => [...prev, number]);
+        setCalledBalls(prev => [...prev, { number, column }]);
         setIsSpinning(false);
 
         // Actualizar el cartón del admin
@@ -187,6 +190,7 @@ export const AdminPage: React.FC = () => {
     if (!socket) return;
     setGameActive(true);
     setCalledNumbers([]);
+    setCalledBalls([]);
     setCurrentNumber(null);
     socket.emit('gameStarted');
   };
@@ -206,6 +210,7 @@ export const AdminPage: React.FC = () => {
 
       setGameActive(false);
       setCalledNumbers([]);
+      setCalledBalls([]);
       setCurrentNumber(null);
       // Reiniciar estado de los jugadores (borrar reclamos y orden)
       setPlayers(prev =>
@@ -222,41 +227,53 @@ export const AdminPage: React.FC = () => {
     }
   };
 
-  const handleValidateBingo = async (player: Player) => {
+  const handleValidateBingo = async (player: Player, isApproved: boolean) => {
     if (!socket || !player.cardToValidate || validatingBingo) return;
 
     setValidatingBingo(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/game/validate-bingo`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          card: player.cardToValidate,
-          calledNumbers
-        }),
-      });
+      if (isApproved) {
+        const response = await fetch(`${API_BASE_URL}/api/game/validate-bingo`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            card: player.cardToValidate,
+            calledNumbers
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error('Error al validar el bingo');
-      }
+        if (!response.ok) {
+          throw new Error('Error al validar el bingo');
+        }
 
-      const { isValid } = await response.json();
-      socket.emit('bingoValidationResult', {
-        playerId: player.id,
-        isValid,
-        message: isValid ? '¡Felicitaciones! Has ganado el juego.' : 'Lo siento, el cartón no es ganador.'
-      });
+        const { isValid } = await response.json();
+        socket.emit('bingoValidationResult', {
+          playerId: player.id,
+          playerName: player.name,
+          isValid,
+          message: isValid ? '¡Felicitaciones! Has ganado el juego.' : 'Lo siento, el cartón no es ganador.'
+        });
 
-      if (isValid) {
-        setGameActive(false);
-        socket.emit('gameEnded');
+        if (isValid) {
+          setGameActive(false);
+          socket.emit('gameEnded');
+        }
+      } else {
+        // Rechazado por el administrador
+        socket.emit('bingoValidationResult', {
+          playerId: player.id,
+          playerName: player.name,
+          isValid: false,
+          message: 'El BINGO fue rechazado por el administrador.'
+        });
       }
 
       setPlayers(prev => prev.map(p => 
         p.id === player.id ? { ...p, hasClaimed: false, cardToValidate: undefined } : p
       ));
+      setSelectedPlayerForValidation(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
@@ -308,13 +325,7 @@ export const AdminPage: React.FC = () => {
         </button>
       </header>
 
-      <div className="game-status">
-        <BallotDrum 
-          isSpinning={isSpinning} 
-          currentNumber={currentNumber}
-          calledNumbers={calledNumbers}
-        />
-      </div>
+
 
       <div className="admin-content">
         <div className="reference-card-section">
@@ -332,13 +343,22 @@ export const AdminPage: React.FC = () => {
         </div>
 
         <div className="players-section">
-
+          <div className="game-status">
+            <BallotDrum 
+              isSpinning={isSpinning} 
+              currentNumber={currentNumber}
+              calledNumbers={calledNumbers}
+            />
+          </div>
 
           <div className="called-numbers called-numbers--sidebar">
             <h2>Números llamados:</h2>
             <div className="number-list">
-              {calledNumbers.map(num => (
-                <span key={num} className="called-number">{num}</span>
+              {calledBalls.map((ball, index) => (
+                <span key={index} className="called-number">
+                  <span className="ball-letter">{ball.column}</span>
+                  <span className="ball-number">{ball.number}</span>
+                </span>
               ))}
             </div>
             <button
@@ -361,18 +381,19 @@ export const AdminPage: React.FC = () => {
                       #{player.bingoOrder}
                     </span>
                   )}
-                  {player.hasClaimed && (
-                    <span className="bingo-claim">¡BINGO!</span>
-                  )}
                 </div>
                 {player.hasClaimed && (
-                  <button
-                    className="validate-button"
-                    onClick={() => handleValidateBingo(player)}
-                    disabled={validatingBingo}
-                  >
-                    {validatingBingo ? 'Validando...' : 'Validar BINGO'}
-                  </button>
+                  <div className="bingo-validation-box">
+                    <div className="bingo-header">
+                      <span className="bingo-claim-text">¡BINGO RECLAMADO!</span>
+                    </div>
+                    <button
+                      className="validate-bingo-button"
+                      onClick={() => setSelectedPlayerForValidation(player)}
+                    >
+                      Ver Cartón y Validar
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
@@ -382,6 +403,61 @@ export const AdminPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal de validación */}
+      {selectedPlayerForValidation && selectedPlayerForValidation.cardToValidate && (
+        <div className="validation-modal-overlay" onClick={() => setSelectedPlayerForValidation(null)}>
+          <div className="validation-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Validar BINGO de {selectedPlayerForValidation.name}</h2>
+              <button 
+                className="close-button"
+                onClick={() => setSelectedPlayerForValidation(null)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="modal-content">
+              <div className="modal-card">
+                <div className="player-bingo-card">
+                  <div className="card-info">
+                    <h3>Cartón del Jugador</h3>
+                    <p>Números llamados: {calledNumbers.length}</p>
+                  </div>
+                  <BingoCard
+                    card={{
+                      id: selectedPlayerForValidation.cardToValidate.id,
+                      numbers: selectedPlayerForValidation.cardToValidate.numbers,
+                      matches: selectedPlayerForValidation.cardToValidate.matches,
+                      isComplete: false,
+                      calledNumbers: calledNumbers
+                    }}
+                    onNumberClick={() => {}}
+                    onClaimBingo={() => {}}
+                    isAdmin={false}
+                  />
+                </div>
+              </div>
+              <div className="modal-actions">
+                <button
+                  className="approve-button"
+                  onClick={() => handleValidateBingo(selectedPlayerForValidation, true)}
+                  disabled={validatingBingo}
+                >
+                  {validatingBingo ? 'Validando...' : '✓ Aprobar'}
+                </button>
+                <button
+                  className="reject-button"
+                  onClick={() => handleValidateBingo(selectedPlayerForValidation, false)}
+                  disabled={validatingBingo}
+                >
+                  ✗ Rechazar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }; 
