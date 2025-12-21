@@ -4,12 +4,14 @@ import './BallotDrum.css';
 interface BallotDrumProps {
   isSpinning: boolean;
   currentNumber: number | null;
+  currentColumn: string | null;
   calledNumbers: number[];
 }
 
 export const BallotDrum: React.FC<BallotDrumProps> = ({ 
   isSpinning, 
-  currentNumber
+  currentNumber,
+  currentColumn
 }) => {
   return (
     <div className={`ballot-drum ${isSpinning ? 'spinning' : ''}`}>
@@ -24,7 +26,10 @@ export const BallotDrum: React.FC<BallotDrumProps> = ({
       </div>
       {currentNumber && !isSpinning && (
         <div className="current-ballot">
-          <div className="selected-ball">{currentNumber}</div>
+          <div className="selected-ball">
+            {currentColumn && <span className="ball-letter">{currentColumn}</span>}
+            <span className="ball-number">{currentNumber}</span>
+          </div>
         </div>
       )}
     </div>

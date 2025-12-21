@@ -34,6 +34,7 @@ export const AdminPage: React.FC = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentNumber, setCurrentNumber] = useState<number | null>(null);
+  const [currentColumn, setCurrentColumn] = useState<string | null>(null);
   const [calledNumbers, setCalledNumbers] = useState<number[]>([]);
   const [calledBalls, setCalledBalls] = useState<Array<{ number: number; column: string }>>([]);
   const [adminCard, setAdminCard] = useState<AdminCard | null>(null);
@@ -160,8 +161,9 @@ export const AdminPage: React.FC = () => {
       // Esperar 3 segundos antes de mostrar el número
       setTimeout(() => {
         setCurrentNumber(number);
+        setCurrentColumn(column);
         setCalledNumbers(prev => [...prev, number]);
-        setCalledBalls(prev => [...prev, { number, column }]);
+        setCalledBalls(prev => [{ number, column }, ...prev].slice(0, 3));
         setIsSpinning(false);
 
         // Actualizar el cartón del admin
@@ -192,6 +194,7 @@ export const AdminPage: React.FC = () => {
     setCalledNumbers([]);
     setCalledBalls([]);
     setCurrentNumber(null);
+    setCurrentColumn(null);
     socket.emit('gameStarted');
   };
 
@@ -212,6 +215,7 @@ export const AdminPage: React.FC = () => {
       setCalledNumbers([]);
       setCalledBalls([]);
       setCurrentNumber(null);
+      setCurrentColumn(null);
       // Reiniciar estado de los jugadores (borrar reclamos y orden)
       setPlayers(prev =>
         prev.map(p => ({
@@ -312,11 +316,11 @@ export const AdminPage: React.FC = () => {
             Iniciar Juego
           </button>
           <button
-            className="control-button generate"
-            onClick={handleGenerateNumber}
-            disabled={!gameActive || isSpinning}
-          >
-            {isSpinning ? 'Generando...' : 'Generar Balota'}
+              className="control-button reset"
+              onClick={handleResetGame}
+              disabled={!gameActive}
+            >
+              Reiniciar Juego
           </button>
 
         </div>
@@ -347,28 +351,28 @@ export const AdminPage: React.FC = () => {
             <BallotDrum 
               isSpinning={isSpinning} 
               currentNumber={currentNumber}
+              currentColumn={currentColumn}
               calledNumbers={calledNumbers}
             />
-          </div>
-
-          <div className="called-numbers called-numbers--sidebar">
-            <h2>Números llamados:</h2>
-            <div className="number-list">
-              {calledBalls.map((ball, index) => (
-                <span key={index} className="called-number">
-                  <span className="ball-letter">{ball.column}</span>
-                  <span className="ball-number">{ball.number}</span>
-                </span>
-              ))}
+            <div className="called-numbers called-numbers--sidebar">
+              <h2>Últimas 3 Balotas:</h2>
+              <div className="number-list carousel">
+                {calledBalls.map((ball, index) => (
+                  <span key={`${ball.column}-${ball.number}-${index}`} className={`called-number ${index === 0 ? 'slide-in' : ''}`}>
+                    <span className="ball-letter">{ball.column}</span>
+                    <span className="ball-number">{ball.number}</span>
+                  </span>
+                ))}
+              </div>
             </div>
-            <button
-              className="control-button reset"
-              onClick={handleResetGame}
-              disabled={!gameActive}
-            >
-              Reiniciar Juego
-            </button>
           </div>
+          <button
+            className="control-button generate"
+            onClick={handleGenerateNumber}
+            disabled={!gameActive || isSpinning}
+          >
+            {isSpinning ? 'Generando...' : 'Generar Balota'}
+          </button>
 
           <h2>Jugadores</h2>
           <div className="players-list">

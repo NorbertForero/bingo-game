@@ -29,7 +29,6 @@ export const BingoCard: React.FC<BingoCardProps> = ({
   const renderReferenceCard = () => {
     return (
       <div className="bingo-card bingo-card-admin">
-        <div className="card-title">Bingo General</div>
         <div className="bingo-header">
           {headers.map((letter, index) => (
             <div key={index} className="header-cell">{letter}</div>

@@ -82,11 +82,26 @@
 }
 
 .game-status {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
   gap: 2rem;
-  margin-bottom: 2rem;
+  margin-bottom: 0.5rem;
+  width: 100%;
+}
+
+.game-status > *:nth-child(1) {
+  justify-self: start;
+}
+
+.game-status > *:nth-child(2) {
+  justify-self: end;
+}
+
+.players-section > .control-button.generate {
+  display: block;
+  margin: 0 auto 1.5rem auto;
+  width: fit-content;
 }
 
 .called-numbers {
@@ -97,7 +112,13 @@
 
 .called-numbers--sidebar {
   margin-bottom: 1.5rem;
-  max-width: 100%;
+  max-width: 120px;
+}
+
+.called-numbers--sidebar h2 {
+  font-size: 0.85rem;
+  text-align: center;
+  margin-bottom: 0.5rem;
 }
 
 .called-numbers--sidebar .number-list {
@@ -106,15 +127,28 @@
 
 .number-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 1rem;
+  justify-content: flex-start;
   margin-top: 1rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.number-list.carousel {
+  flex-direction: column;
+  align-items: center;
+  max-width: 100%;
+  padding: 0.5rem 0;
+  max-height: 550px;
+  gap: 0.8rem;
 }
 
 .called-number {
-  min-width: 140px;
-  height: 140px;
+  min-width: 90px;
+  width: 90px;
+  height: 90px;
+  flex-shrink: 0;
   border-radius: 50%;
   background-color: #4CAF50;
   color: white;
@@ -124,18 +158,50 @@
   justify-content: center;
   font-weight: bold;
   padding: 0.25rem;
-  gap: 0.1rem;
+  gap: 0.05rem;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.called-number.slide-in {
+  animation: slideInFromTop 0.5s ease-out;
+}
+
+@keyframes slideInFromTop {
+  from {
+    transform: translateY(-150px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-150px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.called-number:hover {
+  transform: scale(1.05);
 }
 
 .ball-letter {
-  font-size: 50px;
+  font-size: 32px;
   font-weight: 800;
   line-height: 1;
   opacity: 0.9;
 }
 
 .ball-number {
-  font-size: 50px;
+  font-size: 32px;
   line-height: 1;
   font-weight: 700;
 }
@@ -151,12 +217,14 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  height: fit-content;
+  max-height: calc(100vh - 200px);
 }
 
 .players-section {
   background-color: white;
   padding: 1.5rem;
-  border-radius: 8px;
+  border-radius: 10px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   color: #333333;
 }
