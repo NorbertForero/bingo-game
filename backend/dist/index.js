@@ -202,7 +202,14 @@ io.on('connection', (socket) => {
         io.emit('gameEnded');
     });
     socket.on('bingoValidationResult', (payload) => {
-        io.emit('bingoValidationResult', payload);
+        var _a;
+        // Buscar el socket del jugador específico
+        const playerSocketId = (_a = Array.from(connectedPlayers.entries())
+            .find(([_, player]) => player.id === payload.playerId)) === null || _a === void 0 ? void 0 : _a[0];
+        if (playerSocketId) {
+            // Enviar solo al jugador específico
+            io.to(playerSocketId).emit('bingoValidationResult', payload);
+        }
     });
     socket.on('bingoClaimed', (data) => {
         console.log(`¡BINGO reclamado por ${data.playerName}!`);

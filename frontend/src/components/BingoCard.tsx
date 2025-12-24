@@ -29,27 +29,23 @@ export const BingoCard: React.FC<BingoCardProps> = ({
   const renderReferenceCard = () => {
     return (
       <div className="bingo-card bingo-card-admin">
-        <div className="bingo-header">
-          {headers.map((letter, index) => (
-            <div key={index} className="header-cell">{letter}</div>
-          ))}
-        </div>
-        <div className="bingo-grid">
-          {[...Array(15)].map((_, rowIndex) => (
-            <React.Fragment key={rowIndex}>
-              {headers.map((_, colIndex) => {
+        <div className="bingo-grid-horizontal">
+          {headers.map((letter, colIndex) => (
+            <div key={colIndex} className="bingo-row-horizontal">
+              <div className="header-cell-horizontal">{letter}</div>
+              {[...Array(15)].map((_, rowIndex) => {
                 const number = colIndex * 15 + rowIndex + 1;
                 const called = isNumberCalled(number);
                 return (
                   <div
                     key={number}
-                    className={`bingo-cell ${called ? 'matched' : ''}`}
+                    className={`bingo-cell-horizontal ${called ? 'matched' : ''}`}
                   >
                     {number}
                   </div>
                 );
               })}
-            </React.Fragment>
+            </div>
           ))}
         </div>
       </div>

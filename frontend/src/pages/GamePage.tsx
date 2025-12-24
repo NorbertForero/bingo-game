@@ -23,7 +23,18 @@ export const GamePage: React.FC = () => {
   const location = useLocation();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [currentNumber, setCurrentNumber] = useState<number | null>(null);
-  const [lastNumbers, setLastNumbers] = useState<number[]>([]);
+  const [currentColumn, setCurrentColumn] = useState<string | null>(null);
+  const [lastNumbers, setLastNumbers] = useState<Array<{ number: number; column: string }>>([]);
+
+  // Función para obtener la letra según el número
+  const getColumnLetter = (number: number): string => {
+    if (number >= 1 && number <= 15) return 'B';
+    if (number >= 16 && number <= 30) return 'I';
+    if (number >= 31 && number <= 45) return 'N';
+    if (number >= 46 && number <= 60) return 'G';
+    if (number >= 61 && number <= 75) return 'O';
+    return '';
+  };
   const [player, setPlayer] = useState<Player | null>(null);
   const [loading, setLoading] = useState(true);
   const [gameActive, setGameActive] = useState(false);
@@ -66,7 +77,9 @@ export const GamePage: React.FC = () => {
 
     newSocket.on('numberCalled', (number: number) => {
       setCurrentNumber(number);
-      setLastNumbers(prev => [number, ...prev].slice(0, 5));
+      const column = getColumnLetter(number);
+      setCurrentColumn(column);
+      setLastNumbers(prev => [{ number, column }, ...prev].slice(0, 5));
       setGameActive(true);
     });
 
@@ -74,6 +87,7 @@ export const GamePage: React.FC = () => {
       setGameActive(true);
       setLastNumbers([]);
       setCurrentNumber(null);
+      setCurrentColumn(null);
     });
 
     newSocket.on('gameEnded', () => {
@@ -81,18 +95,16 @@ export const GamePage: React.FC = () => {
     });
 
     newSocket.on('bingoValidationResult', (result: { playerId: string, playerName: string, isValid: boolean, message: string }) => {
-      setClaimingBingo(false);
-      
-      // Determinar el mensaje según si es el ganador o no
-      let displayMessage = result.message;
-      if (result.isValid && result.playerId !== playerId) {
-        // Otro jugador ganó
-        displayMessage = `Lamentablemente esta no fue tu oportunidad. ¡${result.playerName} ha ganado!`;
+      // Solo procesar si el resultado es para este jugador
+      if (result.playerId !== playerId) {
+        return;
       }
       
+      setClaimingBingo(false);
+      
       setValidationResult({
-        isValid: result.isValid && result.playerId === playerId,
-        message: displayMessage
+        isValid: result.isValid,
+        message: result.message
       });
       
       if (result.isValid) {
@@ -164,12 +176,12 @@ export const GamePage: React.FC = () => {
   return (
     <div className="game-page">
       <header className="game-header">
-        <button className="logout-button" onClick={handleLogout}>
+        <button className="logout-button-game" onClick={handleLogout}>
           Cerrar sesión
         </button>
         <div className="player-info">
           <h1>¡Bienvenido, {player.name}!</h1>
-          <div className="game-status">
+          <div className="game-status-listener">
             {gameActive ? (
               <span className="status active">Juego en curso</span>
             ) : (
@@ -182,16 +194,18 @@ export const GamePage: React.FC = () => {
           <div className="current-number">
             <h2>Última balota</h2>
             <div className="number-ball">
-              {currentNumber ?? '?'}
+              {currentColumn && <span className="ball-letter">{currentColumn}</span>}
+              <span className="ball-number">{currentNumber ?? '?'}</span>
             </div>
           </div>
           
           <div className="last-numbers">
             <h3>Últimos números</h3>
             <div className="number-history">
-              {lastNumbers.map((num, index) => (
+              {lastNumbers.map((ball, index) => (
                 <div key={index} className="history-ball">
-                  {num}
+                  <span className="history-letter">{ball.column}</span>
+                  <span className="history-number">{ball.number}</span>
                 </div>
               ))}
             </div>

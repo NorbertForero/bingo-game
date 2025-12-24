@@ -104,11 +104,11 @@ export const AdminPage: React.FC = () => {
         const updated = prev.map(p =>
           p.id === data.playerId
             ? {
-                ...p,
-                hasClaimed: true,
-                cardToValidate: data.card,
-                bingoOrder: p.bingoOrder ?? maxOrder + 1,
-              }
+              ...p,
+              hasClaimed: true,
+              cardToValidate: data.card,
+              bingoOrder: p.bingoOrder ?? maxOrder + 1,
+            }
             : p
         );
 
@@ -142,7 +142,7 @@ export const AdminPage: React.FC = () => {
     if (!socket || !gameActive || isSpinning) return;
 
     setIsSpinning(true);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/game/generate-number`, {
         method: 'POST',
@@ -157,7 +157,7 @@ export const AdminPage: React.FC = () => {
       }
 
       const { number, column } = await response.json();
-      
+
       // Esperar 3 segundos antes de mostrar el número
       setTimeout(() => {
         setCurrentNumber(number);
@@ -260,22 +260,24 @@ export const AdminPage: React.FC = () => {
           message: isValid ? '¡Felicitaciones! Has ganado el juego.' : 'Lo siento, el cartón no es ganador.'
         });
 
+        // Solo terminar el juego si el BINGO es VÁLIDO
         if (isValid) {
           setGameActive(false);
           socket.emit('gameEnded');
         }
       } else {
-        // Rechazado por el administrador
+        // Rechazado por el administrador - el juego continúa
         socket.emit('bingoValidationResult', {
           playerId: player.id,
           playerName: player.name,
           isValid: false,
           message: 'El BINGO fue rechazado por el administrador.'
         });
+        // No se termina el juego, continúa activo
       }
 
-      setPlayers(prev => prev.map(p => 
-        p.id === player.id ? { ...p, hasClaimed: false, cardToValidate: undefined } : p
+      setPlayers(prev => prev.map(p =>
+        p.id === player.id ? { ...p, hasClaimed: false, cardToValidate: undefined, bingoOrder: undefined } : p
       ));
       setSelectedPlayerForValidation(null);
     } catch (err) {
@@ -309,47 +311,25 @@ export const AdminPage: React.FC = () => {
         <h1>Panel de Administrador</h1>
         <div className="game-controls">
           <button
-            className="control-button start"
-            onClick={handleStartGame}
-            disabled={gameActive}
+            className="control-button reset"
+            onClick={handleResetGame}
+            disabled={!gameActive}
           >
-            Iniciar Juego
+            Reiniciar Juego
           </button>
-          <button
-              className="control-button reset"
-              onClick={handleResetGame}
-              disabled={!gameActive}
-            >
-              Reiniciar Juego
+          <button className="control-button reset" onClick={handleLogout}>
+            Cerrar sesión
           </button>
-
         </div>
-        <button className="logout-button" onClick={handleLogout}>
-          Cerrar sesión
-        </button>
       </header>
 
 
 
       <div className="admin-content">
         <div className="reference-card-section">
-          {adminCard && (
-            <BingoCard
-              card={{
-                ...adminCard,
-                calledNumbers: calledNumbers
-              }}
-              onNumberClick={() => {}}
-              onClaimBingo={() => {}}
-              isAdmin={true}
-            />
-          )}
-        </div>
-
-        <div className="players-section">
           <div className="game-status">
-            <BallotDrum 
-              isSpinning={isSpinning} 
+            <BallotDrum
+              isSpinning={isSpinning}
               currentNumber={currentNumber}
               currentColumn={currentColumn}
               calledNumbers={calledNumbers}
@@ -365,14 +345,37 @@ export const AdminPage: React.FC = () => {
                 ))}
               </div>
             </div>
-          </div>
-          <button
-            className="control-button generate"
-            onClick={handleGenerateNumber}
-            disabled={!gameActive || isSpinning}
+            <button
+              className="control-button generate"
+              onClick={handleGenerateNumber}
+              disabled={!gameActive || isSpinning}
+            >
+              {isSpinning ? 'Generando...' : 'Generar Balota'}
+            </button>
+                      <button
+            className="control-button start"
+            onClick={handleStartGame}
+            disabled={gameActive}
           >
-            {isSpinning ? 'Generando...' : 'Generar Balota'}
+            Iniciar Juego
           </button>
+          </div>
+          {adminCard && (
+            <BingoCard
+              card={{
+                ...adminCard,
+                calledNumbers: calledNumbers
+              }}
+              onNumberClick={() => { }}
+              onClaimBingo={() => { }}
+              isAdmin={true}
+            />
+          )}
+        </div>
+
+        <div className="players-section">
+
+
 
           <h2>Jugadores</h2>
           <div className="players-list">
@@ -414,7 +417,7 @@ export const AdminPage: React.FC = () => {
           <div className="validation-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Validar BINGO de {selectedPlayerForValidation.name}</h2>
-              <button 
+              <button
                 className="close-button"
                 onClick={() => setSelectedPlayerForValidation(null)}
               >
@@ -436,8 +439,8 @@ export const AdminPage: React.FC = () => {
                       isComplete: false,
                       calledNumbers: calledNumbers
                     }}
-                    onNumberClick={() => {}}
-                    onClaimBingo={() => {}}
+                    onNumberClick={() => { }}
+                    onClaimBingo={() => { }}
                     isAdmin={false}
                   />
                 </div>

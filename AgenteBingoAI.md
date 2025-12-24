@@ -1,4 +1,171 @@
-# Revisión de proyectos
+# Revisión de proyectos - Bingo Game
+_Última actualización: 23/12/2025_
+
+## 📋 Resumen del Proyecto
+
+Aplicación de Bingo en tiempo real con arquitectura cliente-servidor:
+- **Frontend**: React + TypeScript (Puerto 9002)
+- **Backend**: Node.js + Express + Socket.io (Puerto 9001)
+- **Comunicación**: WebSockets para sincronización en tiempo real
+
+## 🎯 Estado Actual
+
+### ✅ Funcionalidades Implementadas
+
+1. **Panel de Administrador**
+   - Inicio y reinicio de juego
+   - Generación automática de balotas (con animación de 3 segundos)
+   - Visualización de cartón de referencia horizontal (B-I-N-G-O)
+   - Historial de últimas 3 balotas llamadas
+   - Sistema de validación de BINGO con modal lateral
+   - Orden de llegada de reclamos (#1, #2, etc.)
+   - Lista de jugadores conectados en tiempo real
+
+2. **Panel de Jugadores**
+   - Selección de nombre y cartón
+   - Marcado automático de números llamados
+   - Botón de reclamo de BINGO cuando completa
+   - Notificaciones de validación (aprobado/rechazado)
+
+3. **Sistema de Cartones**
+   - Generación aleatoria siguiendo reglas de Bingo
+   - Cartón de referencia horizontal en admin (75 números)
+   - Visualización vertical tradicional para jugadores
+   - Números marcados en verde cuando son llamados
+
+4. **Comunicación en Tiempo Real**
+   - Socket.io para sincronización instantánea
+   - Eventos: conexión/desconexión, números llamados, reclamos de BINGO
+   - API REST para operaciones CRUD
+
+### 🎨 Mejoras de UI Recientes
+
+- Cartón admin horizontal: letras B-I-N-G-O en columnas, números 1-75 distribuidos
+- Celdas uniformes (80x80px) para números de 1-3 dígitos
+- Celdas circulares con fondo oscuro y marcado verde
+- Headers de letra con fondo rosa (#e94560)
+- Espaciado optimizado (4px entre elementos)
+- Layout expandido para ocupar espacio vertical disponible
+
+### 📁 Estructura de Archivos Clave
+
+```
+backend/
+  src/
+    index.ts - Servidor principal, Socket.io
+    routes/
+      cards.ts - Generación de cartones
+      game.ts - Lógica de juego, validación
+
+frontend/
+  src/
+    pages/
+      AdminPage.tsx - Panel administrador
+      PlayerPage.tsx - Panel jugador
+      RoleSelectionPage.tsx - Selección de rol
+    components/
+      BingoCard.tsx - Componente de cartón (dual: admin/player)
+      BallotDrum.tsx - Animación de bombo
+    config/
+      api.ts - URL dinámica del backend
+```
+
+### 🔧 Configuración Técnica
+
+**api.ts**: URL dinámica basada en hostname
+```typescript
+export const API_BASE_URL = 
+  `${window.location.protocol}//${window.location.hostname}:9001`;
+```
+
+**Puertos**:
+- Backend: 9001
+- Frontend: 9002
+
+## 🐛 Problemas Conocidos (Resueltos)
+
+1. ✅ Errores de tipos TypeScript con Socket.io - **RESUELTO**
+2. ✅ URLs hardcodeadas a localhost - **RESUELTO** (ahora usa hostname dinámico)
+3. ✅ Warning de `setError` sin usar en GamePage.tsx - **PENDIENTE DE LIMPIEZA**
+
+## 📝 Notas para el Agente AI
+
+### Patrones de Código
+
+1. **Estado de Socket**: Siempre usar `Socket | null` con `useState`
+2. **Manager Pattern**: Usar `Manager` de socket.io-client, no conexión directa
+3. **API Calls**: Siempre usar `API_BASE_URL` de config/api.ts
+4. **Cartón Admin**: Vista horizontal con `bingo-grid-horizontal` y `bingo-row-horizontal`
+5. **Cartón Player**: Vista tradicional 5x5 con grid
+
+### Componentes Principales
+
+**BingoCard.tsx**:
+- Dual rendering: `isAdmin` prop determina layout
+- Admin: horizontal, 75 números en 5 filas
+- Player: grid 5x5, números propios del cartón
+- Props: `card`, `onNumberClick`, `onClaimBingo`, `isAdmin`, `calledNumbers`
+
+**AdminPage.tsx**:
+- Gestiona socket para broadcasting
+- Estados: `gameActive`, `isSpinning`, `calledNumbers`, `players`
+- Validación de BINGO con modal lateral
+- Sistema de orden de llegada para múltiples reclamos
+
+### Estilos CSS
+
+**BingoCard.css**:
+- `.bingo-card`: contenedor base con fondo gris oscuro
+- `.bingo-card-admin`: flex:1 para expandir verticalmente
+- `.bingo-grid-horizontal`: flex column con space-evenly
+- `.bingo-cell-horizontal`: 80x80px, circular, fondo #363333
+- `.matched`: fondo verde #4CAF50
+
+**AdminPage.css**:
+- `.reference-card-section`: height:100%, display:flex, flex-direction:column
+- `.game-status`: fondo gris, grid 2 columnas, para bombo y últimas balotas
+- `.players-section`: fondo gris, lista de jugadores
+
+### Flujo de Validación de BINGO
+
+1. Jugador presiona botón "¡BINGO!"
+2. Socket emite `bingoClaimed` con `playerId`, `playerName`, `card`
+3. Admin recibe evento, actualiza lista con orden (#1, #2...)
+4. Admin abre modal lateral con cartón del jugador
+5. Admin aprueba o rechaza
+6. Backend valida cartón contra números llamados
+7. Socket emite `bingoValidationResult` a jugador específico
+8. Si válido y aprobado: juego termina
+
+### Comandos Útiles
+
+```bash
+# Backend
+cd backend
+npm install
+npm run dev
+
+# Frontend
+cd frontend
+npm install
+npm start
+
+# Acceso desde red local
+http://[IP-LOCAL]:9002
+```
+
+## 🎯 Próximos Pasos Sugeridos
+
+1. Limpiar variables no usadas (warnings de ESLint)
+2. Agregar persistencia de juegos (base de datos)
+3. Agregar sonidos para números llamados
+4. Implementar diferentes patrones de victoria (línea, esquinas, full card)
+5. Sistema de múltiples salas/juegos simultáneos
+6. Historial de ganadores
+7. Exportar cartones a PDF
+
+---
+
 _Exported on 12/15/2025 at 13:00:00 GMT-5 from Cursor (2.2.20)_
 
 ---

@@ -244,7 +244,14 @@ io.on('connection', (socket) => {
   });
 
   socket.on('bingoValidationResult', (payload) => {
-    io.emit('bingoValidationResult', payload);
+    // Buscar el socket del jugador específico
+    const playerSocketId = Array.from(connectedPlayers.entries())
+      .find(([_, player]) => player.id === payload.playerId)?.[0];
+    
+    if (playerSocketId) {
+      // Enviar solo al jugador específico
+      io.to(playerSocketId).emit('bingoValidationResult', payload);
+    }
   });
 
   socket.on('bingoClaimed', (data) => {

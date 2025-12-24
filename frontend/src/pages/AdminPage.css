@@ -82,12 +82,15 @@
 }
 
 .game-status {
+  background-color: rgb(74, 73, 73);
   display: grid;
   grid-template-columns: 1fr 1fr;
   align-items: start;
   gap: 2rem;
-  margin-bottom: 0.5rem;
   width: 100%;
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .game-status > *:nth-child(1) {
@@ -217,16 +220,16 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  height: fit-content;
-  max-height: calc(100vh - 200px);
+  height: 100%;
+  gap: 2rem;
 }
 
 .players-section {
-  background-color: white;
+  background-color: rgb(74, 73, 73);
   padding: 1.5rem;
   border-radius: 10px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  color: #333333;
+  color: #ffffff;
 }
 
 .players-list {
@@ -238,7 +241,6 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  border-bottom: 1px solid #eee;
   flex-direction: column;
   gap: 1rem;
 }
@@ -248,7 +250,7 @@
 }
 
 .player-item.claiming {
-  background-color: #fff3e0;
+  background-color: #363333;
 }
 
 .player-info {
@@ -260,7 +262,8 @@
 
 .player-name {
   font-weight: 500;
-  color: #222222;
+  color: white;
+  font-size: 32px;
 }
 
 .bingo-order {
@@ -272,7 +275,7 @@
   margin-left: 0.5rem;
   padding: 0 0.4rem;
   border-radius: 999px;
-  background-color: #ffe082;
+  background-color: #4CAF50;
   color: #5d4037;
   font-weight: 600;
   font-size: 0.75rem;
@@ -366,7 +369,7 @@
 
 .no-players {
   text-align: center;
-  color: #666;
+  color: white;
   font-style: italic;
 }
 
