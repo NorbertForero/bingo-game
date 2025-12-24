@@ -27,6 +27,10 @@ export const BingoCard: React.FC<BingoCardProps> = ({
   };
 
   const renderReferenceCard = () => {
+    const lastCalledNumber = card.calledNumbers && card.calledNumbers.length > 0 
+      ? card.calledNumbers[card.calledNumbers.length - 1] 
+      : null;
+
     return (
       <div className="bingo-card bingo-card-admin">
         <div className="bingo-grid-horizontal">
@@ -36,10 +40,13 @@ export const BingoCard: React.FC<BingoCardProps> = ({
               {[...Array(15)].map((_, rowIndex) => {
                 const number = colIndex * 15 + rowIndex + 1;
                 const called = isNumberCalled(number);
+                const isLastCalled = number === lastCalledNumber;
                 return (
                   <div
                     key={number}
-                    className={`bingo-cell-horizontal ${called ? 'matched' : ''}`}
+                    className={`bingo-cell-horizontal ${
+                      isLastCalled ? 'last-called-glow' : called ? 'matched' : ''
+                    }`}
                   >
                     {number}
                   </div>

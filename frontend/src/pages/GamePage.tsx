@@ -40,6 +40,7 @@ export const GamePage: React.FC = () => {
   const [gameActive, setGameActive] = useState(false);
   const [claimingBingo, setClaimingBingo] = useState(false);
   const [validationResult, setValidationResult] = useState<{ isValid: boolean, message: string } | null>(null);
+  const [paidCards, setPaidCards] = useState<number>(0);
 
   const handleLogout = () => {
     if (socket) {
@@ -55,12 +56,35 @@ export const GamePage: React.FC = () => {
       return;
     }
 
-    const playerId = Date.now().toString();
+    const paidCardsCount = location.state?.paidCards || location.state.cards.length;
+    setPaidCards(paidCardsCount);
+
+    // Usar un ID consistente basado en el nombre y los cartones
+    const cardIds = location.state.cards.map((c: Card) => c.id).join('-');
+    const playerId = `${location.state.playerName}_${cardIds}`;
+
+    // Cargar marcas guardadas desde localStorage si existen
+    const savedMarks = localStorage.getItem(`bingoMarks_${playerId}`);
+    let cards = location.state.cards;
+    
+    if (savedMarks) {
+      try {
+        const marksData = JSON.parse(savedMarks);
+        cards = cards.map((card: Card) => {
+          if (marksData[card.id]) {
+            return { ...card, matches: marksData[card.id] };
+          }
+          return card;
+        });
+      } catch (e) {
+        console.error('Error al cargar marcas guardadas:', e);
+      }
+    }
 
     setPlayer({
       id: playerId,
       name: location.state.playerName,
-      cards: location.state.cards
+      cards: cards
     });
 
     const manager = new Manager(API_BASE_URL);
@@ -71,7 +95,9 @@ export const GamePage: React.FC = () => {
       // Registrar al jugador
       newSocket.emit('playerJoined', {
         name: location.state.playerName,
-        id: playerId
+        id: playerId,
+        paidCards: paidCardsCount,
+        selectedCards: location.state.cards.length
       });
     });
 
@@ -80,14 +106,29 @@ export const GamePage: React.FC = () => {
       const column = getColumnLetter(number);
       setCurrentColumn(column);
       setLastNumbers(prev => [{ number, column }, ...prev].slice(0, 5));
-      setGameActive(true);
+      setGameActive(true); // Activar el juego cuando sale la primera balota
     });
 
     newSocket.on('gameStarted', () => {
-      setGameActive(true);
+      setGameActive(false); // Permitir cambiar cartones al inicio
       setLastNumbers([]);
       setCurrentNumber(null);
       setCurrentColumn(null);
+      
+      // Limpiar marcas del juego anterior
+      if (player) {
+        localStorage.removeItem(`bingoMarks_${player.id}`);
+        setPlayer(prevPlayer => {
+          if (!prevPlayer) return null;
+          
+          const clearedCards = prevPlayer.cards.map(card => ({
+            ...card,
+            matches: card.matches.map(row => row.map(() => false))
+          }));
+          
+          return { ...prevPlayer, cards: clearedCards };
+        });
+      }
     });
 
     newSocket.on('gameEnded', () => {
@@ -136,6 +177,13 @@ export const GamePage: React.FC = () => {
         return card;
       });
 
+      // Guardar marcas en localStorage
+      const marksToSave = updatedCards.reduce((acc, card) => {
+        acc[card.id] = card.matches;
+        return acc;
+      }, {} as Record<string, boolean[][]>);
+      localStorage.setItem(`bingoMarks_${prevPlayer.id}`, JSON.stringify(marksToSave));
+
       return { ...prevPlayer, cards: updatedCards };
     });
   };
@@ -153,6 +201,36 @@ export const GamePage: React.FC = () => {
       cardId: cardId,
       card: card
     });
+  };
+
+  const handleClearMarks = () => {
+    if (!player) return;
+
+    setPlayer(prevPlayer => {
+      if (!prevPlayer) return null;
+      
+      const updatedCards = prevPlayer.cards.map(card => ({
+        ...card,
+        matches: card.matches.map(row => row.map(() => false))
+      }));
+
+      // Limpiar marcas de localStorage
+      localStorage.removeItem(`bingoMarks_${prevPlayer.id}`);
+
+      return { ...prevPlayer, cards: updatedCards };
+    });
+  };
+
+  const handleChangeCards = () => {
+    if (socket) {
+      socket.disconnect();
+      setSocket(null);
+    }
+    // Limpiar marcas guardadas al cambiar cartones
+    if (player) {
+      localStorage.removeItem(`bingoMarks_${player.id}`);
+    }
+    navigate('/play', { state: { playerName: player?.name } });
   };
 
   if (loading) {
@@ -176,9 +254,21 @@ export const GamePage: React.FC = () => {
   return (
     <div className="game-page">
       <header className="game-header">
-        <button className="logout-button-game" onClick={handleLogout}>
-          Cerrar sesión
-        </button>
+        <div className="header-buttons">
+          <button className="clear-button" onClick={handleClearMarks}>
+            Limpiar marcas
+          </button>
+          <button 
+            className="change-cards-button" 
+            onClick={handleChangeCards}
+            disabled={gameActive}
+          >
+            Cambiar cartones
+          </button>
+          <button className="logout-button-game" onClick={handleLogout}>
+            Cerrar sesión
+          </button>
+        </div>
         <div className="player-info">
           <h1>¡Bienvenido, {player.name}!</h1>
           <div className="game-status-listener">

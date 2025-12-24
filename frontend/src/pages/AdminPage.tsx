@@ -4,12 +4,15 @@ import { Manager, Socket } from 'socket.io-client';
 import { API_BASE_URL } from '../config/api';
 import { BingoCard } from '../components/BingoCard';
 import { BallotDrum } from '../components/BallotDrum';
+import { PatternConfigModal, GamePattern } from '../components/PatternConfigModal';
 import './AdminPage.css';
 
 interface Player {
   id: string;
   name: string;
   hasClaimed: boolean;
+  paidCards?: number;
+  selectedCards?: number;
   /**
    * Orden en el que reclamó BINGO (1 = primero, 2 = segundo, etc.)
    * undefined si aún no ha reclamado.
@@ -44,6 +47,12 @@ export const AdminPage: React.FC = () => {
   const [validatingBingo, setValidatingBingo] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [selectedPlayerForValidation, setSelectedPlayerForValidation] = useState<Player | null>(null);
+  const [showPatternModal, setShowPatternModal] = useState(false);
+  const [gamePatterns, setGamePatterns] = useState<GamePattern[]>([]);
+  const [currentPatternIndex, setCurrentPatternIndex] = useState(0);
+  const [completedPatterns, setCompletedPatterns] = useState<string[]>([]);
+  const [showWinnerModal, setShowWinnerModal] = useState(false);
+  const [winnerInfo, setWinnerInfo] = useState<{ name: string; patternName: string } | null>(null);
 
   useEffect(() => {
     const fetchAdminCard = async () => {
@@ -130,12 +139,25 @@ export const AdminPage: React.FC = () => {
     };
   }, []);
 
-  const handleLogout = () => {
-    if (socket) {
-      socket.disconnect();
-      setSocket(null);
+  const handleLogout = async () => {
+    try {
+      // Reiniciar el juego antes de cerrar sesión
+      await fetch(`${API_BASE_URL}/api/game/reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+    } catch (err) {
+      console.error('Error al reiniciar el juego:', err);
+    } finally {
+      // Desconectar socket y navegar al inicio
+      if (socket) {
+        socket.disconnect();
+        setSocket(null);
+      }
+      navigate('/');
     }
-    navigate('/');
   };
 
   const handleGenerateNumber = async () => {
@@ -189,13 +211,25 @@ export const AdminPage: React.FC = () => {
   };
 
   const handleStartGame = () => {
+    setShowPatternModal(true);
+  };
+
+  const handlePatternConfirm = (patterns: GamePattern[]) => {
     if (!socket) return;
+    setGamePatterns(patterns);
+    setCurrentPatternIndex(0);
+    setCompletedPatterns([]);
     setGameActive(true);
     setCalledNumbers([]);
     setCalledBalls([]);
     setCurrentNumber(null);
     setCurrentColumn(null);
-    socket.emit('gameStarted');
+    setShowPatternModal(false);
+    socket.emit('gameStarted', { patterns });
+  };
+
+  const handlePatternCancel = () => {
+    setShowPatternModal(false);
   };
 
   const handleResetGame = async () => {
@@ -216,6 +250,9 @@ export const AdminPage: React.FC = () => {
       setCalledBalls([]);
       setCurrentNumber(null);
       setCurrentColumn(null);
+      setGamePatterns([]);
+      setCurrentPatternIndex(0);
+      setCompletedPatterns([]);
       // Reiniciar estado de los jugadores (borrar reclamos y orden)
       setPlayers(prev =>
         prev.map(p => ({
@@ -237,6 +274,7 @@ export const AdminPage: React.FC = () => {
     setValidatingBingo(true);
     try {
       if (isApproved) {
+        const currentPattern = gamePatterns[currentPatternIndex];
         const response = await fetch(`${API_BASE_URL}/api/game/validate-bingo`, {
           method: 'POST',
           headers: {
@@ -244,7 +282,8 @@ export const AdminPage: React.FC = () => {
           },
           body: JSON.stringify({
             card: player.cardToValidate,
-            calledNumbers
+            calledNumbers,
+            pattern: currentPattern
           }),
         });
 
@@ -253,17 +292,46 @@ export const AdminPage: React.FC = () => {
         }
 
         const { isValid } = await response.json();
-        socket.emit('bingoValidationResult', {
-          playerId: player.id,
-          playerName: player.name,
-          isValid,
-          message: isValid ? '¡Felicitaciones! Has ganado el juego.' : 'Lo siento, el cartón no es ganador.'
-        });
-
-        // Solo terminar el juego si el BINGO es VÁLIDO
+        
         if (isValid) {
-          setGameActive(false);
-          socket.emit('gameEnded');
+          // Patrón completado exitosamente
+          setCompletedPatterns(prev => [...prev, currentPattern.id]);
+          
+          // Mostrar modal de celebración
+          setWinnerInfo({
+            name: player.name,
+            patternName: currentPattern.name
+          });
+          setShowWinnerModal(true);
+          
+          socket.emit('bingoValidationResult', {
+            playerId: player.id,
+            playerName: player.name,
+            isValid: true,
+            patternName: currentPattern.name,
+            message: `¡Felicitaciones! Has completado el patrón "${currentPattern.name}".`
+          });
+
+          // Verificar si hay más patrones
+          if (currentPatternIndex < gamePatterns.length - 1) {
+            // Avanzar al siguiente patrón
+            setCurrentPatternIndex(prev => prev + 1);
+            socket.emit('patternCompleted', {
+              completedPattern: currentPattern,
+              nextPattern: gamePatterns[currentPatternIndex + 1]
+            });
+          } else {
+            // Era el último patrón, terminar el juego
+            setGameActive(false);
+            socket.emit('gameEnded');
+          }
+        } else {
+          socket.emit('bingoValidationResult', {
+            playerId: player.id,
+            playerName: player.name,
+            isValid: false,
+            message: 'Lo siento, el cartón no cumple con el patrón actual.'
+          });
         }
       } else {
         // Rechazado por el administrador - el juego continúa
@@ -273,7 +341,6 @@ export const AdminPage: React.FC = () => {
           isValid: false,
           message: 'El BINGO fue rechazado por el administrador.'
         });
-        // No se termina el juego, continúa activo
       }
 
       setPlayers(prev => prev.map(p =>
@@ -310,13 +377,6 @@ export const AdminPage: React.FC = () => {
       <header className="admin-header">
         <h1>Panel de Administrador</h1>
         <div className="game-controls">
-          <button
-            className="control-button reset"
-            onClick={handleResetGame}
-            disabled={!gameActive}
-          >
-            Reiniciar Juego
-          </button>
           <button className="control-button reset" onClick={handleLogout}>
             Cerrar sesión
           </button>
@@ -327,6 +387,41 @@ export const AdminPage: React.FC = () => {
 
       <div className="admin-content">
         <div className="reference-card-section">
+          <div className="current-pattern-display">
+            <h3>
+              Patrón Actual: {gameActive && gamePatterns.length > 0 
+                ? gamePatterns[currentPatternIndex].name 
+                : 'Sin patrón seleccionado'}
+            </h3>
+            <p>
+              {gameActive && gamePatterns.length > 0 
+                ? gamePatterns[currentPatternIndex].description 
+                : 'Inicia un juego para seleccionar un patrón'}
+            </p>
+            {!gameActive && (
+              <p style={{ marginTop: '10px', fontStyle: 'italic', color: '#4ECDC4' }}>
+                ¿Quieres Jugar? ¡Es muy divertido! 🎉
+              </p>
+            )}
+            {gameActive && gamePatterns.length > 0 && (
+              <div className="pattern-progress">
+                {gamePatterns.map((pattern, index) => (
+                  <div
+                    key={pattern.id}
+                    className={`pattern-indicator ${
+                      completedPatterns.includes(pattern.id)
+                        ? 'completed'
+                        : index === currentPatternIndex
+                        ? 'current'
+                        : 'pending'
+                    }`}
+                  >
+                    {index + 1}. {pattern.name}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="game-status">
             <BallotDrum
               isSpinning={isSpinning}
@@ -335,7 +430,7 @@ export const AdminPage: React.FC = () => {
               calledNumbers={calledNumbers}
             />
             <div className="called-numbers called-numbers--sidebar">
-              <h2>Últimas 3 Balotas:</h2>
+              <h2>Últimas Balotas:</h2>
               <div className="number-list carousel">
                 {calledBalls.map((ball, index) => (
                   <span key={`${ball.column}-${ball.number}-${index}`} className={`called-number ${index === 0 ? 'slide-in' : ''}`}>
@@ -345,20 +440,29 @@ export const AdminPage: React.FC = () => {
                 ))}
               </div>
             </div>
-            <button
-              className="control-button generate"
-              onClick={handleGenerateNumber}
-              disabled={!gameActive || isSpinning}
-            >
-              {isSpinning ? 'Generando...' : 'Generar Balota'}
-            </button>
-                      <button
-            className="control-button start"
-            onClick={handleStartGame}
-            disabled={gameActive}
-          >
-            Iniciar Juego
-          </button>
+            <div className="button-controls">
+              <button
+              className="control-button start"
+              onClick={handleStartGame}
+              disabled={gameActive}
+              >
+                Iniciar Juego
+              </button>
+              <button
+                className="control-button generate"
+                onClick={handleGenerateNumber}
+                disabled={!gameActive || isSpinning}
+              >
+                {isSpinning ? 'Generando...' : 'Generar Balota'}
+              </button>
+              <button
+                className="control-button reset"
+                onClick={handleResetGame}
+                disabled={!gameActive}
+              >
+                Reiniciar Juego
+              </button>
+            </div>
           </div>
           {adminCard && (
             <BingoCard
@@ -381,8 +485,13 @@ export const AdminPage: React.FC = () => {
           <div className="players-list">
             {players.map(player => (
               <div key={player.id} className={`player-item ${player.hasClaimed ? 'claiming' : ''}`}>
-                <div className="player-info">
+                <div className="player-info-admin">
                   <span className="player-name">{player.name}</span>
+                  {player.paidCards && player.selectedCards && (
+                    <span className="player-cards-info">
+                      ({player.selectedCards}/{player.paidCards} cartones)
+                    </span>
+                  )}
                   {typeof player.bingoOrder === 'number' && (
                     <span className="bingo-order">
                       #{player.bingoOrder}
@@ -461,6 +570,43 @@ export const AdminPage: React.FC = () => {
                   ✗ Rechazar
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de configuración de patrones */}
+      {showPatternModal && (
+        <PatternConfigModal
+          onConfirm={handlePatternConfirm}
+          onCancel={handlePatternCancel}
+        />
+      )}
+
+      {/* Modal de celebración de ganador */}
+      {showWinnerModal && winnerInfo && (
+        <div className="winner-modal-overlay" onClick={() => setShowWinnerModal(false)}>
+          <div className="winner-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="confetti-container">
+              {[...Array(50)].map((_, i) => (
+                <div key={i} className="confetti" style={{
+                  left: `${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 3}s`,
+                  backgroundColor: ['#FFD700', '#FF6B6B', '#4ECDC4', '#95E1D3', '#A8E6CF'][Math.floor(Math.random() * 5)]
+                }} />
+              ))}
+            </div>
+            <div className="winner-content">
+              <div className="trophy-icon">🏆</div>
+              <h1 className="winner-title">¡GANADOR!</h1>
+              <div className="winner-name">{winnerInfo.name}</div>
+              <div className="winner-pattern">
+                Patrón completado: <strong>{winnerInfo.patternName}</strong>
+              </div>
+              <div className="celebration-emoji">🎉🎊🎇</div>
+              <button className="close-winner-button" onClick={() => setShowWinnerModal(false)}>
+                Continuar
+              </button>
             </div>
           </div>
         </div>

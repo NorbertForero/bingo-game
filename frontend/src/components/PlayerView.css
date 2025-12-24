@@ -4,7 +4,7 @@
   align-items: center;
   min-height: 100vh;
   padding: 20px;
-  background-color: #46178f;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
 }
 
 .player-info {
@@ -34,18 +34,18 @@
   margin-top: 20px;
   padding: 15px 40px;
   font-size: 1.5rem;
-  background-color: #FF4B4B;
+  background: linear-gradient(135deg, #e94560 0%, #ff6b9d 100%);
   color: white;
   border: none;
   border-radius: 25px;
   cursor: pointer;
-  transition: transform 0.2s, background-color 0.3s;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s, box-shadow 0.3s;
+  box-shadow: 0 4px 12px rgba(233, 69, 96, 0.4);
 }
 
 .check-bingo-button:hover {
-  background-color: #FF6B6B;
-  transform: scale(1.05);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 20px rgba(233, 69, 96, 0.6);
 }
 
 .check-bingo-button:active {

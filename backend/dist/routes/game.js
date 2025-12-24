@@ -73,42 +73,70 @@ router.get('/status', (req, res) => {
 // Endpoint para validar un cartón de bingo
 router.post('/validate-bingo', (req, res) => {
     try {
-        const { card, calledNumbers: calledNumbersFromClient } = req.body;
+        const { card, calledNumbers: calledNumbersFromClient, pattern } = req.body;
         if (!card || !card.numbers || !card.matches) {
             return res.status(400).json({
                 error: 'Datos del cartón inválidos'
             });
         }
-        // Verificar que los números marcados como "match" estén en calledNumbers
-        let isValid = true;
         const numbers = card.numbers;
         const matches = card.matches;
-        // Verificar todas las celdas marcadas
-        for (let row = 0; row < 5; row++) {
-            for (let col = 0; col < 5; col++) {
-                if (matches[row][col]) {
-                    const number = numbers[row][col];
-                    // El centro (2,2) es gratis
+        let isValid = true;
+        // Si hay un patrón específico, primero verificar que cumpla con el patrón
+        if (pattern) {
+            isValid = checkPattern(matches, pattern.type);
+            console.log('Pattern check result:', isValid);
+            console.log('Pattern type:', pattern.type);
+            // Si cumple con el patrón, verificar que esos números específicos hayan sido llamados
+            if (isValid) {
+                const requiredPositions = getPatternPositions(pattern.type, matches);
+                console.log('Required positions:', requiredPositions);
+                for (const [row, col] of requiredPositions) {
+                    // El centro (2,2) es gratis, siempre se considera válido
                     if (row === 2 && col === 2) {
                         continue;
                     }
-                    // Verificar que el número esté en calledNumbers
-                    if (!calledNumbersFromClient.includes(number)) {
+                    const number = numbers[row][col];
+                    const isMarked = matches[row][col];
+                    const isCalled = calledNumbersFromClient.includes(number);
+                    console.log(`Position [${row}][${col}]: number=${number}, marked=${isMarked}, called=${isCalled}`);
+                    // Verificar que el número esté marcado Y que haya sido llamado
+                    if (!isMarked || !isCalled) {
                         isValid = false;
+                        console.log(`Validation failed at position [${row}][${col}]`);
                         break;
                     }
                 }
             }
-            if (!isValid)
-                break;
         }
-        // Verificar si tiene un patrón ganador (línea, columna o diagonal)
-        if (isValid) {
-            isValid = checkWinningPattern(matches);
+        else {
+            // Retrocompatibilidad: verificar todos los números marcados y luego el patrón
+            for (let row = 0; row < 5; row++) {
+                for (let col = 0; col < 5; col++) {
+                    if (matches[row][col]) {
+                        const number = numbers[row][col];
+                        // El centro (2,2) es gratis
+                        if (row === 2 && col === 2) {
+                            continue;
+                        }
+                        // Verificar que el número esté en calledNumbers
+                        if (!calledNumbersFromClient.includes(number)) {
+                            isValid = false;
+                            break;
+                        }
+                    }
+                }
+                if (!isValid)
+                    break;
+            }
+            // Verificar cualquier patrón ganador
+            if (isValid) {
+                isValid = checkWinningPattern(matches);
+            }
         }
         res.json({
             isValid,
-            message: isValid ? '¡BINGO válido!' : 'El cartón no tiene un patrón ganador'
+            message: isValid ? '¡BINGO válido!' : 'El cartón no cumple con el patrón requerido'
         });
     }
     catch (error) {
@@ -118,6 +146,90 @@ router.post('/validate-bingo', (req, res) => {
         });
     }
 });
+// Función para verificar patrones específicos
+function checkPattern(matches, patternType) {
+    switch (patternType) {
+        case 'line':
+            // Verificar si hay al menos una línea completa (horizontal, vertical o diagonal)
+            // Verificar filas
+            for (let i = 0; i < 5; i++) {
+                if (matches[i].every(match => match))
+                    return true;
+            }
+            // Verificar columnas
+            for (let i = 0; i < 5; i++) {
+                if (matches.every(row => row[i]))
+                    return true;
+            }
+            // Verificar diagonal principal o secundaria
+            const mainDiag = matches.every((row, i) => row[i]);
+            const secDiag = matches.every((row, i) => row[4 - i]);
+            return mainDiag || secDiag;
+        case 'horizontal':
+            // Verificar si hay al menos una fila completa
+            for (let i = 0; i < 5; i++) {
+                if (matches[i].every(match => match))
+                    return true;
+            }
+            return false;
+        case 'vertical':
+            // Verificar si hay al menos una columna completa
+            for (let i = 0; i < 5; i++) {
+                if (matches.every(row => row[i]))
+                    return true;
+            }
+            return false;
+        case 'diagonal':
+            // Verificar diagonal principal o secundaria
+            const mainDiagonal = matches.every((row, i) => row[i]);
+            const secondaryDiagonal = matches.every((row, i) => row[4 - i]);
+            return mainDiagonal || secondaryDiagonal;
+        case 'four-corners':
+            // Verificar las 4 esquinas del cartón
+            return matches[0][0] && matches[0][4] && matches[4][0] && matches[4][4];
+        case 'letter-C':
+            // Primera y última columna + primera y última fila
+            const firstCol = matches.every(row => row[0]);
+            const lastCol = matches.every(row => row[4]);
+            const firstRow = matches[0].every(match => match);
+            const lastRow = matches[4].every(match => match);
+            return firstCol && lastCol && firstRow && lastRow;
+        case 'letter-N':
+            // Primera y última columna + diagonal principal
+            const firstColN = matches.every(row => row[0]);
+            const lastColN = matches.every(row => row[4]);
+            const diagonalN = matches.every((row, i) => row[i]);
+            return firstColN && lastColN && diagonalN;
+        case 'letter-L':
+            // Primera columna + última fila
+            const firstColL = matches.every(row => row[0]);
+            const lastRowL = matches[4].every(match => match);
+            return firstColL && lastRowL;
+        case 'letter-M':
+            // Primera y última columna + dos diagonales superiores
+            const firstColM = matches.every(row => row[0]);
+            const lastColM = matches.every(row => row[4]);
+            const topCenter = matches[0][2] && matches[1][1] && matches[1][3];
+            return firstColM && lastColM && topCenter;
+        case 'letter-X':
+            // Ambas diagonales completas
+            const mainDiagX = matches.every((row, i) => row[i]);
+            const secondaryDiagX = matches.every((row, i) => row[4 - i]);
+            return mainDiagX && secondaryDiagX;
+        case 'full':
+            // Todo el cartón marcado
+            for (let row = 0; row < 5; row++) {
+                for (let col = 0; col < 5; col++) {
+                    if (!matches[row][col])
+                        return false;
+                }
+            }
+            return true;
+        default:
+            // Si no se reconoce el patrón, usar validación genérica
+            return checkWinningPattern(matches);
+    }
+}
 // Función para verificar si hay un patrón ganador
 function checkWinningPattern(matches) {
     // Verificar filas
@@ -137,6 +249,137 @@ function checkWinningPattern(matches) {
     if (matches.every((row, i) => row[4 - i]))
         return true;
     return false;
+}
+// Función para obtener las posiciones requeridas por cada patrón
+function getPatternPositions(patternType, matches) {
+    const positions = [];
+    switch (patternType) {
+        case 'line':
+            // Devolver las posiciones de cualquier línea completa (horizontal, vertical o diagonal)
+            // Verificar filas
+            for (let row = 0; row < 5; row++) {
+                if (matches[row].every(match => match)) {
+                    for (let col = 0; col < 5; col++) {
+                        positions.push([row, col]);
+                    }
+                    return positions; // Retornar la primera línea encontrada
+                }
+            }
+            // Verificar columnas
+            for (let col = 0; col < 5; col++) {
+                if (matches.every(row => row[col])) {
+                    for (let row = 0; row < 5; row++) {
+                        positions.push([row, col]);
+                    }
+                    return positions; // Retornar la primera columna encontrada
+                }
+            }
+            // Verificar diagonal principal
+            if (matches.every((row, i) => row[i])) {
+                for (let i = 0; i < 5; i++) {
+                    positions.push([i, i]);
+                }
+                return positions;
+            }
+            // Verificar diagonal secundaria
+            if (matches.every((row, i) => row[4 - i])) {
+                for (let i = 0; i < 5; i++) {
+                    positions.push([i, 4 - i]);
+                }
+                return positions;
+            }
+            break;
+        case 'horizontal':
+            // Devolver solo las posiciones de la fila que está marcada completamente
+            for (let row = 0; row < 5; row++) {
+                if (matches[row].every(match => match)) {
+                    // Esta fila está completa, agregar todas sus posiciones
+                    for (let col = 0; col < 5; col++) {
+                        positions.push([row, col]);
+                    }
+                    break; // Solo necesitamos una fila completa
+                }
+            }
+            break;
+        case 'vertical':
+            // Devolver solo las posiciones de la columna que está marcada completamente
+            for (let col = 0; col < 5; col++) {
+                if (matches.every(row => row[col])) {
+                    // Esta columna está completa, agregar todas sus posiciones
+                    for (let row = 0; row < 5; row++) {
+                        positions.push([row, col]);
+                    }
+                    break; // Solo necesitamos una columna completa
+                }
+            }
+            break;
+        case 'diagonal':
+            // Diagonales
+            for (let i = 0; i < 5; i++) {
+                positions.push([i, i]); // Diagonal principal
+                positions.push([i, 4 - i]); // Diagonal secundaria
+            }
+            break;
+        case 'four-corners':
+            // Solo las 4 esquinas
+            positions.push([0, 0], [0, 4], [4, 0], [4, 4]);
+            break;
+        case 'letter-C':
+            // Primera y última columna + primera y última fila
+            for (let i = 0; i < 5; i++) {
+                positions.push([i, 0]); // Primera columna
+                positions.push([i, 4]); // Última columna
+                positions.push([0, i]); // Primera fila
+                positions.push([4, i]); // Última fila
+            }
+            break;
+        case 'letter-N':
+            // Primera y última columna + diagonal principal
+            for (let i = 0; i < 5; i++) {
+                positions.push([i, 0]); // Primera columna
+                positions.push([i, 4]); // Última columna
+                positions.push([i, i]); // Diagonal principal
+            }
+            break;
+        case 'letter-L':
+            // Primera columna + última fila
+            for (let i = 0; i < 5; i++) {
+                positions.push([i, 0]); // Primera columna
+                positions.push([4, i]); // Última fila
+            }
+            break;
+        case 'letter-M':
+            // Primera y última columna + parte superior
+            for (let i = 0; i < 5; i++) {
+                positions.push([i, 0]); // Primera columna
+                positions.push([i, 4]); // Última columna
+            }
+            positions.push([0, 2], [1, 1], [1, 3]); // Pico superior
+            break;
+        case 'letter-X':
+            // Ambas diagonales
+            for (let i = 0; i < 5; i++) {
+                positions.push([i, i]); // Diagonal principal
+                positions.push([i, 4 - i]); // Diagonal secundaria
+            }
+            break;
+        case 'full':
+            // Todo el cartón
+            for (let row = 0; row < 5; row++) {
+                for (let col = 0; col < 5; col++) {
+                    positions.push([row, col]);
+                }
+            }
+            break;
+        default:
+            // Para patrones desconocidos, verificar todas las posiciones
+            for (let row = 0; row < 5; row++) {
+                for (let col = 0; col < 5; col++) {
+                    positions.push([row, col]);
+                }
+            }
+    }
+    return positions;
 }
 function getBingoColumn(num) {
     if (num >= 1 && num <= 15)

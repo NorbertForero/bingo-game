@@ -18,6 +18,9 @@ export const CardSelectionPage: React.FC = () => {
   const [selectedCards, setSelectedCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(true);
+  const [paidCards, setPaidCards] = useState<number>(1);
+  const [tempPaidCards, setTempPaidCards] = useState<number>(1);
   const playerName = location.state?.playerName;
 
   useEffect(() => {
@@ -61,8 +64,15 @@ export const CardSelectionPage: React.FC = () => {
   const handleCardSelect = (card: Card) => {
     if (selectedCards.find(c => c.id === card.id)) {
       setSelectedCards(selectedCards.filter(c => c.id !== card.id));
-    } else if (selectedCards.length < 4) {
+    } else if (selectedCards.length < paidCards) {
       setSelectedCards([...selectedCards, card]);
+    }
+  };
+
+  const handlePaymentConfirm = () => {
+    if (tempPaidCards >= 1 && tempPaidCards <= 8) {
+      setPaidCards(tempPaidCards);
+      setShowPaymentModal(false);
     }
   };
 
@@ -75,7 +85,8 @@ export const CardSelectionPage: React.FC = () => {
     navigate('/game', {
       state: {
         playerName,
-        cards: selectedCards
+        cards: selectedCards,
+        paidCards: paidCards
       }
     });
   };
@@ -104,6 +115,49 @@ export const CardSelectionPage: React.FC = () => {
 
   return (
     <div className="card-selection-page">
+      {/* Modal de pago */}
+      {showPaymentModal && (
+        <div className="payment-modal-overlay">
+          <div className="payment-modal">
+            <h2>¿Cuántos cartones pagaste?</h2>
+            <p>Selecciona el número de cartones que compraste (1-8)</p>
+            <div className="payment-input-container">
+              <button 
+                className="payment-stepper-btn"
+                onClick={() => setTempPaidCards(Math.max(1, tempPaidCards - 1))}
+              >
+                -
+              </button>
+              <input
+                type="number"
+                min="1"
+                max="8"
+                value={tempPaidCards}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value);
+                  if (value >= 1 && value <= 8) {
+                    setTempPaidCards(value);
+                  }
+                }}
+                className="payment-input"
+              />
+              <button 
+                className="payment-stepper-btn"
+                onClick={() => setTempPaidCards(Math.min(8, tempPaidCards + 1))}
+              >
+                +
+              </button>
+            </div>
+            <button 
+              className="payment-confirm-btn"
+              onClick={handlePaymentConfirm}
+            >
+              Confirmar
+            </button>
+          </div>
+        </div>
+      )}
+
       <header className="selection-header">
         <button className="back-button" onClick={handleBack}>
           ← Volver
@@ -112,10 +166,10 @@ export const CardSelectionPage: React.FC = () => {
           <h1>Selección de Cartones</h1>
           <h2>Jugador: {playerName}</h2>
           <p className="selection-info">
-            Selecciona entre 1 y 4 cartones para jugar
+            Selecciona hasta {paidCards} {paidCards === 1 ? 'cartón' : 'cartones'} para jugar
           </p>
           <div className="selected-count">
-            Cartones seleccionados: {selectedCards.length}/4
+            Cartones seleccionados: {selectedCards.length}/{paidCards}
           </div>
         </div>
       </header>

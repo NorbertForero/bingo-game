@@ -1,7 +1,7 @@
 .bingo-card {
-  background: rgb(74, 73, 73);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   border-radius: 10px;
-  padding: 20px;
+  padding: 15px;
   width: 100%;
   box-sizing: border-box;
 }
@@ -11,6 +11,8 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .card-title {
@@ -34,7 +36,7 @@
   padding: 10px;
   text-align: center;
   font-weight: bold;
-  font-size: 3px;
+  font-size: 25px;
   width: 100%;
   height: 200%;
 
@@ -47,11 +49,11 @@
 }
 
 .bingo-cell {
-  background: #363333;
+  background: #0f172a;
   padding: 0;
   text-align: center;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.3s, transform 0.2s;
   font-size: 25px;
   color: #ffffff;
   aspect-ratio: 1;
@@ -59,6 +61,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 100%;
+  border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .bingo-card-admin .header-cell {
@@ -127,6 +130,51 @@
   background: #4CAF50;
   color: white;
   font-weight: bold;
+}
+
+/* Efecto de iluminación para la última balota */
+.bingo-cell-horizontal.last-called-glow {
+  background: #fff;
+  color: #000;
+  font-weight: bold;
+  position: relative;
+  animation: colorGlow 2s ease-in-out infinite;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.8),
+              0 0 30px rgba(255, 215, 0, 0.6),
+              inset 0 0 10px rgba(255, 255, 255, 0.5);
+  transform: scale(1.05);
+  z-index: 10;
+}
+
+@keyframes colorGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.8),
+                0 0 30px rgba(255, 0, 0, 0.6),
+                0 0 40px rgba(255, 0, 0, 0.4),
+                inset 0 0 15px rgba(255, 100, 100, 0.6);
+    background: linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%);
+  }
+  25% {
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8),
+                0 0 30px rgba(255, 215, 0, 0.6),
+                0 0 40px rgba(255, 215, 0, 0.4),
+                inset 0 0 15px rgba(255, 255, 100, 0.6);
+    background: linear-gradient(135deg, #ffd93d 0%, #ffe66d 100%);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.8),
+                0 0 30px rgba(0, 255, 0, 0.6),
+                0 0 40px rgba(0, 255, 0, 0.4),
+                inset 0 0 15px rgba(100, 255, 100, 0.6);
+    background: linear-gradient(135deg, #4CAF50 0%, #66bb6a 100%);
+  }
+  75% {
+    box-shadow: 0 0 20px rgba(0, 150, 255, 0.8),
+                0 0 30px rgba(0, 150, 255, 0.6),
+                0 0 40px rgba(0, 150, 255, 0.4),
+                inset 0 0 15px rgba(100, 180, 255, 0.6);
+    background: linear-gradient(135deg, #2196F3 0%, #42a5f5 100%);
+  }
 }
 
 .bingo-cell.matched {
