@@ -53,6 +53,7 @@ export const AdminPage: React.FC = () => {
   const [completedPatterns, setCompletedPatterns] = useState<string[]>([]);
   const [showWinnerModal, setShowWinnerModal] = useState(false);
   const [winnerInfo, setWinnerInfo] = useState<{ name: string; patternName: string } | null>(null);
+  const [wasLastPattern, setWasLastPattern] = useState(false);
 
   useEffect(() => {
     const fetchAdminCard = async () => {
@@ -296,6 +297,10 @@ export const AdminPage: React.FC = () => {
         if (isValid) {
           // Patrón completado exitosamente
           setCompletedPatterns(prev => [...prev, currentPattern.id]);
+          
+          // Verificar si este es el último patrón ANTES de incrementar el índice
+          const isLastPattern = currentPatternIndex >= gamePatterns.length - 1;
+          setWasLastPattern(isLastPattern);
           
           // Mostrar modal de celebración
           setWinnerInfo({
@@ -585,7 +590,13 @@ export const AdminPage: React.FC = () => {
 
       {/* Modal de celebración de ganador */}
       {showWinnerModal && winnerInfo && (
-        <div className="winner-modal-overlay" onClick={() => setShowWinnerModal(false)}>
+        <div className="winner-modal-overlay" onClick={() => {
+          setShowWinnerModal(false);
+          // Si era el último patrón, reiniciar el juego
+          if (wasLastPattern) {
+            handleResetGame();
+          }
+        }}>
           <div className="winner-modal" onClick={(e) => e.stopPropagation()}>
             <div className="confetti-container">
               {[...Array(50)].map((_, i) => (
@@ -604,7 +615,13 @@ export const AdminPage: React.FC = () => {
                 Patrón completado: <strong>{winnerInfo.patternName}</strong>
               </div>
               <div className="celebration-emoji">🎉🎊🎇</div>
-              <button className="close-winner-button" onClick={() => setShowWinnerModal(false)}>
+              <button className="close-winner-button" onClick={() => {
+                setShowWinnerModal(false);
+                // Si era el último patrón, reiniciar el juego
+                if (wasLastPattern) {
+                  handleResetGame();
+                }
+              }}>
                 Continuar
               </button>
             </div>
