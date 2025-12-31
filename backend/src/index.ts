@@ -16,6 +16,8 @@ const io = new Server(httpServer, {
       'http://192.168.20.22:9002',
       'http://192.168.20.27:9001',
       'http://192.168.20.27:9002',
+      'http://192.168.1.24:9001',
+      'http://192.168.1.24:9002',
     ],
     methods: ['GET', 'POST'],
   },
@@ -30,6 +32,8 @@ app.use(
       'http://192.168.20.22:9002',
       'http://192.168.20.27:9001',
       'http://192.168.20.27:9002',
+      'http://192.168.1.24:9001',
+      'http://192.168.1.24:9002',
     ],
     methods: ['GET', 'POST'],
   })
@@ -308,7 +312,8 @@ function verifyBingo(player: Player): boolean {
   return false;
 }
 
-const PORT = process.env.PORT || 9001;
-httpServer.listen(PORT, () => {
+const PORT = Number(process.env.PORT) || 9001;
+httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
+  console.log(`Accesible en todas las interfaces de red`);
 }); 
